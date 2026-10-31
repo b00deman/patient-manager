@@ -76,36 +76,27 @@ tr:hover{background:#1a2632}
 .modal .btn-row{justify-content:flex-end}
 .btn-print{background:#66bb6a;color:#fff;padding:6px 14px;font-size:13px;border-radius:6px;border:none;cursor:pointer;font-family:inherit;font-weight:600}
 .btn-print:hover{background:#43a047}
-.settings-row{display:flex;gap:12px;align-items:flex-end;margin-bottom:16px}
-.settings-row .form-group{flex:1}
-.print-header-config{background:#0f1923;border:1px solid #2a3b4a;border-radius:8px;padding:16px;margin-bottom:16px}
-.print-header-config label{font-size:13px;color:#90a4ae;margin-bottom:6px;display:block}
-.print-header-config input{width:100%;background:#0f1923;border:1px solid #2a3b4a;border-radius:6px;padding:8px 12px;color:#e0e6ed;font-size:14px;font-family:inherit;outline:none}
-.print-header-config input:focus{border-color:#4fc3f7}
-.print-header-config .cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media print{body *{visibility:hidden}#printArea,#printArea *{visibility:visible}#printArea{position:absolute;left:0;top:0;width:100%;background:#fff;color:#000}#printArea .ph-title{font-size:24px;font-weight:bold;text-align:center;margin-bottom:4px;color:#000}#printArea .ph-address{text-align:center;font-size:15px;color:#000;margin-bottom:2px}#printArea .ph-phone{text-align:center;font-size:14px;color:#333;margin-bottom:20px;border-bottom:2px solid #000;padding-bottom:10px}#printArea .ph-patient{padding:10px 20px}#printArea .ph-patient h3{font-size:18px;margin-bottom:12px;color:#000}#printArea .ph-patient table{width:100%;border-collapse:collapse}#printArea .ph-patient th,#printArea .ph-patient td{padding:8px 12px;text-align:right;border:1px solid #999;font-size:14px;color:#000}#printArea .ph-patient th{background:#eee;font-weight:600}}
+#printArea{background:#fff;color:#000;padding:24px;border-radius:8px;margin-bottom:16px}
+#printArea .ph-title{font-size:26px;font-weight:bold;text-align:center;margin-bottom:6px;color:#000}
+#printArea .ph-sub{text-align:center;font-size:14px;color:#333;margin-bottom:20px;border-bottom:2px solid #000;padding-bottom:12px}
+#printArea .ph-patient h3{font-size:18px;margin-bottom:12px;color:#000}
+#printArea .ph-patient table{width:100%;border-collapse:collapse}
+#printArea .ph-patient th,#printArea .ph-patient td{padding:10px 14px;text-align:right;border:1px solid #999;font-size:15px;color:#000}
+#printArea .ph-patient th{background:#eee;font-weight:600;width:30%}
+@media print{html,body{background:#fff!important}body *{visibility:hidden}.modal-overlay{background:transparent!important}#printArea,#printArea *{visibility:visible}#printArea{position:absolute!important;left:0;top:0;width:100%;padding:20px;margin:0;border-radius:0;box-shadow:none}}
 </style>
 </head>
 <body>
 <div class="container">
 <header><h1>مستشفى الخيري</h1><p>أدخل بيانات المريض وسيتم حفظها تلقائياً — يمكنك البحث والرجوع لها في أي وقت</p></header>
-<div class="card"><h2>إضافة مريض جديد</h2>
+<div class="card"><h2>تسجيل مريض جديد</h2>
 <div class="form-grid">
 <div class="form-group"><label>الاسم *</label><input type="text" id="name" placeholder="اسم المريض"></div>
 <div class="form-group"><label>العمر</label><input type="number" id="age" placeholder="العمر بالسنوات" min="0" max="150"></div>
 <div class="form-group"><label>الجنس</label><select id="gender"><option value="">-- اختر --</option><option value="ذكر">ذكر</option><option value="أنثى">أنثى</option></select></div>
 <div class="form-group full"><label>الشكوى</label><textarea id="complaint" placeholder="اكتب الشكوى / الأعراض"></textarea></div>
 </div>
-<div class="btn-row"><button class="btn btn-primary" onclick="addPatient()">حفظ البيانات</button><button class="btn btn-secondary" onclick="clearForm()">مسح الحقول</button></div>
-</div>
-<div class="card"><h2>بيانات الطباعة (تظهر في أعلى الورقة)</h2>
-<div class="print-header-config">
-<div class="cfg-grid">
-<div><label>العنوان (اسم المستشفى)</label><input type="text" id="cfgHospital" value="مستشفى الخيري"></div>
-<div><label>العنوان - اختار أي عنوان</label><input type="text" id="cfgAddress" placeholder="اكتب العنوان هنا" value=""></div>
-</div>
-<div style="margin-top:12px"><label>رقم الهاتف</label><input type="text" id="cfgPhone" placeholder="اكتب رقم الهاتف" value=""></div>
-</div>
+<div class="btn-row"><button class="btn btn-primary" onclick="addPatient()">تسجيل</button><button class="btn btn-print" onclick="printForm()">طباعة</button><button class="btn btn-secondary" onclick="clearForm()">مسح الحقول</button></div>
 </div>
 <div class="card"><h2>المرضى المسجلين</h2>
 <div class="search-bar"><input type="text" id="searchInput" placeholder="ابحث بالاسم أو العمر أو الجنس أو الشكوى..." oninput="searchPatients()"></div>
@@ -123,8 +114,8 @@ tr:hover{background:#1a2632}
 </div>
 <div class="btn-row"><button class="btn btn-primary" onclick="saveEdit()">حفظ التعديل</button><button class="btn btn-secondary" onclick="closeModal()">إلغاء</button></div>
 </div></div>
+<div class="modal-overlay" id="printModal"><div class="modal" style="max-width:600px"><h2>معاينة الطباعة</h2><div id="printArea"></div><div class="btn-row" style="justify-content:center"><button class="btn btn-primary" onclick="doPrint()">طباعة الآن</button><button class="btn btn-secondary" onclick="closePrint()">إغلاق</button></div></div></div>
 <div class="toast" id="toast"></div>
-<div id="printArea"></div>
 <script>
 let allPatients=[],editingId=null;
 async function loadPatients(){try{const r=await fetch('/api/patients');const j=await r.json();allPatients=j.data||[];renderTable(allPatients)}catch(e){showToast('خطأ',true)}}
@@ -138,7 +129,11 @@ function closeModal(){document.getElementById('editModal').classList.remove('sho
 function clearForm(){document.getElementById('name').value='';document.getElementById('age').value='';document.getElementById('gender').value='';document.getElementById('complaint').value=''}
 function showToast(m,e){const t=document.getElementById('toast');t.textContent=m;t.className='toast show'+(e?' error':'');setTimeout(()=>{t.className='toast'},3000)}
 function esc(s){if(!s)return'';return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function printPatient(id){const p=allPatients.find(x=>x.id===id);if(!p)return;const h=document.getElementById('cfgHospital').value||'مستشفى الخيري';const a=document.getElementById('cfgAddress').value||'';const ph=document.getElementById('cfgPhone').value||'';const pa=document.getElementById('printArea');pa.innerHTML='<div class="ph-title">'+esc(h)+'</div>'+(a?'<div class="ph-address">'+esc(a)+'</div>':'')+(ph?'<div class="ph-phone">هاتف: '+esc(ph)+'</div>':'<div class="ph-phone"></div>')+'<div class="ph-patient"><h3>بيانات المريض</h3><table><tr><th style="width:25%">الاسم</th><td style="width:75%">'+esc(p.name)+'</td></tr><tr><th>العمر</th><td>'+esc(p.age)+'</td></tr><tr><th>الجنس</th><td>'+esc(p.gender)+'</td></tr><tr><th>الشكوى</th><td>'+esc(p.complaint)+'</td></tr><tr><th>التاريخ</th><td>'+esc(p.date)+'</td></tr></table></div>';document.body.classList.add('printing');window.print();setTimeout(()=>{pa.innerHTML=''},500)}
+function buildPrintCard(p){const pa=document.getElementById('printArea');pa.innerHTML='<div class="ph-title">مستشفى الخيري</div><div class="ph-sub">بيانات المريض</div><div class="ph-patient"><table><tr><th>الاسم</th><td>'+esc(p.name)+'</td></tr><tr><th>العمر</th><td>'+esc(p.age)+'</td></tr><tr><th>الجنس</th><td>'+esc(p.gender)+'</td></tr><tr><th>الشكوى</th><td>'+esc(p.complaint)+'</td></tr><tr><th>التاريخ</th><td>'+esc(p.date)+'</td></tr></table></div>'}
+function printPatient(id){const p=allPatients.find(x=>x.id===id);if(!p)return;buildPrintCard(p);document.getElementById('printModal').classList.add('show')}
+function printForm(){const n=document.getElementById('name').value.trim();if(!n){showToast('اكتب الاسم أولاً للطباعة',true);return}const now=new Date();const d=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');buildPrintCard({name:n,age:document.getElementById('age').value.trim(),gender:document.getElementById('gender').value,complaint:document.getElementById('complaint').value.trim(),date:d});document.getElementById('printModal').classList.add('show')}
+function doPrint(){window.print()}
+function closePrint(){document.getElementById('printModal').classList.remove('show')}
 window.onload=loadPatients;
 </script>
 </body>
