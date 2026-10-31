@@ -4,4 +4,10 @@ build/
 dist/
 *.spec
 *.exe
+
+# بيانات حقيقية — لا ترفعها أبداً
 patients.json
+users.json
+
+# لقطات شاشة للتطوير
+ui_*.png
