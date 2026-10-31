@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>مستشفى الخيري</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  background: #0f1923;
+  color: #e0e6ed;
+  min-height: 100vh;
+  padding: 20px;
+}
+.container { max-width: 900px; margin: 0 auto; }
+header {
+  text-align: center;
+  padding: 30px 0 20px;
+  border-bottom: 1px solid #1e2d3a;
+  margin-bottom: 25px;
+}
+header h1 {
+  font-size: 28px;
+  color: #4fc3f7;
+  font-weight: 600;
+}
+header p { color: #78909c; margin-top: 8px; font-size: 14px; }
+.card {
+  background: #162029;
+  border: 1px solid #1e2d3a;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.card h2 {
+  font-size: 18px;
+  color: #4fc3f7;
+  margin-bottom: 18px;
+  font-weight: 600;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.form-group { display: flex; flex-direction: column; }
+.form-group.full { grid-column: 1 / -1; }
+.form-group label {
+  font-size: 13px;
+  color: #90a4ae;
+  margin-bottom: 6px;
+}
+.form-group input,
+.form-group select,
+.form-group textarea {
+  background: #0f1923;
+  border: 1px solid #2a3b4a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #e0e6ed;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #4fc3f7;
+}
+.form-group textarea { resize: vertical; min-height: 60px; }
+.btn-row { display: flex; gap: 12px; margin-top: 18px; }
+.btn {
+  padding: 11px 28px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+}
+.btn-primary {
+  background: #4fc3f7;
+  color: #0f1923;
+}
+.btn-primary:hover { background: #29b6f6; }
+.btn-secondary {
+  background: #263238;
+  color: #90a4ae;
+  border: 1px solid #37474f;
+}
+.btn-secondary:hover { background: #37474f; color: #e0e6ed; }
+.btn-danger {
+  background: #ef5350;
+  color: #fff;
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+.btn-danger:hover { background: #e53935; }
+.btn-edit {
+  background: #ffa726;
+  color: #0f1923;
+  padding: 6px 14px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+.btn-edit:hover { background: #fb8c00; }
+.search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.search-bar input {
+  flex: 1;
+  background: #0f1923;
+  border: 1px solid #2a3b4a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #e0e6ed;
+  font-size: 15px;
+  outline: none;
+}
+.search-bar input:focus { border-color: #4fc3f7; }
+.stats {
+  font-size: 13px;
+  color: #78909c;
+  margin-bottom: 14px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 12px 10px;
+  text-align: right;
+  border-bottom: 1px solid #1e2d3a;
+}
+th {
+  color: #4fc3f7;
+  font-size: 13px;
+  font-weight: 600;
+}
+td { font-size: 14px; }
+tr:hover { background: #1a2632; }
+.empty-msg {
+  text-align: center;
+  padding: 40px;
+  color: #546e7a;
+  font-size: 15px;
+}
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 50%;
+  transform: translateX(50%);
+  background: #2e7d32;
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 15px;
+  z-index: 999;
+  display: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.toast.error { background: #c62828; }
+.toast.show { display: block; animation: fadeIn 0.3s; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: #162029;
+  border: 1px solid #2a3b4a;
+  border-radius: 12px;
+  padding: 28px;
+  width: 90%;
+  max-width: 500px;
+}
+.modal h2 { color: #4fc3f7; margin-bottom: 20px; }
+.modal .form-grid { grid-template-columns: 1fr 1fr; }
+.modal .btn-row { justify-content: flex-end; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>مستشفى الخيري</h1>
+    <p>أدخل بيانات المريض وسيتم حفظها تلقائياً — يمكنك البحث والرجوع لها في أي وقت</p>
+  </header>
+
+  <!-- نموذج الإدخال -->
+  <div class="card">
+    <h2>إضافة مريض جديد</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>الاسم *</label>
+        <input type="text" id="name" placeholder="اسم المريض">
+      </div>
+      <div class="form-group">
+        <label>العمر</label>
+        <input type="number" id="age" placeholder="العمر بالسنوات" min="0" max="150">
+      </div>
+      <div class="form-group">
+        <label>الجنس</label>
+        <select id="gender">
+          <option value="">-- اختر --</option>
+          <option value="ذكر">ذكر</option>
+          <option value="أنثى">أنثى</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>التاريخ (تلقائي)</label>
+        <input type="text" id="dateDisplay" disabled style="opacity:0.5">
+      </div>
+      <div class="form-group full">
+        <label>الشكوى</label>
+        <textarea id="complaint" placeholder="اكتب الشكوى / الأعراض"></textarea>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="addPatient()">حفظ البيانات</button>
+      <button class="btn btn-secondary" onclick="clearForm()">مسح الحقول</button>
+    </div>
+  </div>
+
+  <!-- البحث والعرض -->
+  <div class="card">
+    <h2>المرضى المسجلين</h2>
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="ابحث بالاسم أو العمر أو الجنس أو الشكوى..." oninput="searchPatients()">
+    </div>
+    <div class="stats" id="stats">جاري التحميل...</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>الاسم</th>
+          <th>العمر</th>
+          <th>الجنس</th>
+          <th>الشكوى</th>
+          <th>التاريخ</th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
+      <tbody id="patientTable"></tbody>
+    </table>
+    <div class="empty-msg" id="emptyMsg" style="display:none">لا توجد بيانات مسجلة بعد</div>
+  </div>
+</div>
+
+<!-- نافذة تعديل المريض -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h2>تعديل بيانات المريض</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>الاسم</label>
+        <input type="text" id="editName">
+      </div>
+      <div class="form-group">
+        <label>العمر</label>
+        <input type="number" id="editAge" min="0" max="150">
+      </div>
+      <div class="form-group full">
+        <label>الجنس</label>
+        <select id="editGender">
+          <option value="">-- اختر --</option>
+          <option value="ذكر">ذكر</option>
+          <option value="أنثى">أنثى</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>الشكوى</label>
+        <textarea id="editComplaint"></textarea>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveEdit()">حفظ التعديل</button>
+      <button class="btn btn-secondary" onclick="closeModal()">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let allPatients = [];
+let editingId = null;
+
+// تحميل جميع المرضى عند فتح البرنامج
+async function loadPatients() {
+  try {
+    const res = await fetch('/api/patients');
+    const json = await res.json();
+    allPatients = json.data || [];
+    renderTable(allPatients);
+  } catch (e) {
+    showToast('خطأ في تحميل البيانات', true);
+  }
+}
+
+// إضافة مريض جديد
+async function addPatient() {
+  const name = document.getElementById('name').value.trim();
+  const age = document.getElementById('age').value.trim();
+  const gender = document.getElementById('gender').value;
+  const complaint = document.getElementById('complaint').value.trim();
+
+  if (!name) {
+    showToast('الاسم مطلوب', true);
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, age, gender, complaint })
+    });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      showToast('تم حفظ بيانات المريض بنجاح');
+      clearForm();
+      loadPatients();
+    } else {
+      showToast(json.message || 'خطأ', true);
+    }
+  } catch (e) {
+    showToast('خطأ في الاتصال', true);
+  }
+}
+
+// البحث الفوري
+async function searchPatients() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) {
+    loadPatients();
+    return;
+  }
+  try {
+    const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+    const json = await res.json();
+    renderTable(json.data || []);
+  } catch (e) {
+    showToast('خطأ في البحث', true);
+  }
+}
+
+// عرض الجدول
+function renderTable(patients) {
+  const tbody = document.getElementById('patientTable');
+  const stats = document.getElementById('stats');
+  const emptyMsg = document.getElementById('emptyMsg');
+
+  if (!patients || patients.length === 0) {
+    tbody.innerHTML = '';
+    stats.textContent = 'لا يوجد مرضى مسجلين';
+    emptyMsg.style.display = 'block';
+    return;
+  }
+
+  emptyMsg.style.display = 'none';
+  stats.textContent = `عدد المرضى: ${patients.length}`;
+
+  tbody.innerHTML = patients.map(p => `
+    <tr>
+      <td>${p.id}</td>
+      <td>${escapeHtml(p.name)}</td>
+      <td>${escapeHtml(p.age)}</td>
+      <td>${escapeHtml(p.gender)}</td>
+      <td>${escapeHtml(p.complaint)}</td>
+      <td style="font-size:12px;color:#78909c">${escapeHtml(p.date)}</td>
+      <td>
+        <button class="btn-edit" onclick="openEdit(${p.id})">تعديل</button>
+        <button class="btn-danger" onclick="deletePatient(${p.id})">حذف</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// حذف مريض
+async function deletePatient(id) {
+  if (!confirm('هل أنت متأكد من حذف بيانات هذا المريض؟')) return;
+  try {
+    const res = await fetch('/api/delete/' + id, { method: 'POST' });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      showToast('تم حذف بيانات المريض');
+      loadPatients();
+    } else {
+      showToast(json.message || 'خطأ', true);
+    }
+  } catch (e) {
+    showToast('خطأ في الاتصال', true);
+  }
+}
+
+// فتح نافذة التعديل
+function openEdit(id) {
+  const patient = allPatients.find(p => p.id === id);
+  if (!patient) return;
+  editingId = id;
+  document.getElementById('editName').value = patient.name;
+  document.getElementById('editAge').value = patient.age;
+  document.getElementById('editGender').value = patient.gender;
+  document.getElementById('editComplaint').value = patient.complaint;
+  document.getElementById('editModal').classList.add('show');
+}
+
+async function saveEdit() {
+  if (editingId === null) return;
+  const name = document.getElementById('editName').value.trim();
+  const age = document.getElementById('editAge').value.trim();
+  const gender = document.getElementById('editGender').value;
+  const complaint = document.getElementById('editComplaint').value.trim();
+
+  if (!name) {
+    showToast('الاسم مطلوب', true);
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/update/' + editingId, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, age, gender, complaint })
+    });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      showToast('تم تحديث البيانات');
+      closeModal();
+      loadPatients();
+    } else {
+      showToast(json.message || 'خطأ', true);
+    }
+  } catch (e) {
+    showToast('خطأ في الاتصال', true);
+  }
+}
+
+function closeModal() {
+  document.getElementById('editModal').classList.remove('show');
+  editingId = null;
+}
+
+function clearForm() {
+  document.getElementById('name').value = '';
+  document.getElementById('age').value = '';
+  document.getElementById('gender').value = '';
+  document.getElementById('complaint').value = '';
+}
+
+function showToast(msg, isError) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => { toast.className = 'toast'; }, 3000);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, m => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[m]));
+}
+
+// تحميل البيانات عند بدء البرنامج
+window.onload = loadPatients;
+</script>
+</body>
+</html>
