@@ -379,7 +379,7 @@ def public_user(u):
 
 
 HTML_CONTENT = r"""<!DOCTYPE html>
-<html lang="ar" dir="rtl" data-theme="dark">
+<html lang="ar" dir="rtl" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -409,10 +409,10 @@ html[data-theme="light"]{
   --danger:#e53935;--danger2:#c62828;--warn:#ef6c00;--warn2:#e65100;--ok:#2e7d32;--ok2:#1b5e20;
   --logout-bg:#fdecea;--logout-fg:#c62828;--logout-bg2:#fbd9d6;--logout-fg2:#b71c1c;
 }
-body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px;padding-top:76px;transition:background .25s,color .25s}
+body{font-family:"IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px;padding-top:76px;transition:background .25s,color .25s}
 .container{max-width:1000px;margin:0 auto}
 header{text-align:center;padding:18px 0 16px;border-bottom:1px solid var(--border);margin-bottom:20px}
-header h1{font-size:28px;color:var(--accent);font-weight:600}
+header h1{font-family:"Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:34px;color:var(--accent);font-weight:800;letter-spacing:-.055em;line-height:1.45}
 header p{color:var(--mute);margin-top:8px;font-size:14px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
 .card h2{font-size:18px;color:var(--accent);margin-bottom:18px;font-weight:600}
@@ -479,7 +479,7 @@ tbody tr:hover{background:var(--hover)}
 #loginView{display:none;min-height:70vh;align-items:center;justify-content:center}
 #loginView.show{display:flex}
 .login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 32px;width:100%;max-width:390px;box-shadow:var(--shadow)}
-.login-logo{text-align:center;font-size:26px;font-weight:700;color:var(--accent);margin-bottom:6px}
+.login-logo{font-family:"Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;text-align:center;font-size:28px;font-weight:800;color:var(--accent);margin-bottom:6px;letter-spacing:-.04em}
 .login-sub{text-align:center;color:var(--mute);font-size:13px;margin-bottom:26px}
 .login-field{margin-bottom:16px}
 .login-field label{display:block;font-size:13px;color:var(--dim);margin-bottom:6px}
@@ -526,21 +526,21 @@ tbody tr:hover{background:var(--hover)}
   --hover:#17313b;--chip:#193541;--chip2:#285061;--shadow:0 18px 44px rgba(0,0,0,.24);--shadow-sm:0 5px 18px rgba(0,0,0,.16);
 }
 html[data-theme="light"]{
-  --bg:#f1f7f6;--surface:#ffffff;--surface2:#f6fbfa;--border:#d9e9e6;--border2:#bed8d3;
-  --text:#17343a;--dim:#557078;--mute:#718b91;--accent:#087f72;--accent2:#05665b;--ink:#ffffff;
-  --hover:#eff8f6;--chip:#e5f1ef;--chip2:#d4e7e3;--shadow:0 18px 44px rgba(26,77,70,.11);--shadow-sm:0 5px 18px rgba(26,77,70,.07);
+  --bg:#f4f8fa;--surface:#ffffff;--surface2:#f8fbfc;--border:#d8e6ea;--border2:#b9d1d7;
+  --text:#18343b;--dim:#587078;--mute:#738c92;--accent:#087f72;--accent2:#05665b;--ink:#ffffff;
+  --hover:#eef8f6;--chip:#e5f1ef;--chip2:#cfe5e1;--shadow:0 18px 44px rgba(24,64,72,.10);--shadow-sm:0 5px 18px rgba(24,64,72,.07);
 }
-body{font-family:"Noto Sans Arabic","IBM Plex Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;background:var(--bg);padding:84px 24px 32px;letter-spacing:.01em}
+body{font-family:"IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;background:var(--bg);padding:84px 24px 32px;letter-spacing:.01em}
 body:before{content:"";position:fixed;inset:0 0 auto;height:240px;pointer-events:none;background:linear-gradient(180deg,rgba(94,224,193,.08),transparent);z-index:-1}body{overflow-x:hidden}
 .container{max-width:1120px}
 .topcontrols{height:64px;padding:0 max(24px,calc((100vw - 1120px)/2));background:rgba(18,35,45,.94);border-bottom:1px solid var(--border2);box-shadow:0 8px 26px rgba(0,0,0,.16)}
 html[data-theme="light"] .topcontrols{background:rgba(255,255,255,.94)}
-.brand-mini{font-size:16px;letter-spacing:-.02em}
+.brand-mini{font-family:"Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:17px;letter-spacing:-.035em;font-weight:800}
 .seg{border-radius:11px;padding:3px;background:var(--chip);border-color:var(--border2)}
 .seg-btn{border-radius:8px;padding:7px 14px;font-size:12px}
 .ctl-btn{border-radius:10px;width:38px;height:38px}
 header{padding:28px 30px 26px;margin-bottom:24px;text-align:start;border:1px solid var(--border);border-radius:20px;background:var(--surface);box-shadow:var(--shadow-sm)}
-header h1{font-size:32px;letter-spacing:-.04em;color:var(--text);line-height:1.35}
+header h1{font-family:"Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:34px;letter-spacing:-.055em;color:var(--accent);line-height:1.45;font-weight:800;text-shadow:0 1px 0 rgba(255,255,255,.45)}
 header p{font-size:14px;max-width:650px;line-height:1.9}
 .card{border-radius:20px;padding:28px;margin-bottom:22px;box-shadow:var(--shadow)}
 .card h2{font-size:19px;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:10px}
