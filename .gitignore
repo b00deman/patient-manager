@@ -7,7 +7,15 @@ dist/
 
 # بيانات حقيقية — لا ترفعها أبداً
 patients.json
+patients.json.tmp
 users.json
+settings.json
+backups/
 
-# لقطات شاشة للتطوير
+# سكربتات ولقطات شاشة للتطوير
+uitest.py
+shot.py
+debug.py
 ui_*.png
+ui[0-9]*.png
+preview_*.png
