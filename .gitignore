@@ -19,3 +19,8 @@ debug.py
 ui_*.png
 ui[0-9]*.png
 preview_*.png
+_extracted.html
+
+# مجلد التسليم الشخصي — يحتوي نسخة مبنية ببيانات المرضى الحقيقية
+# (نسخة patients.json المدمجة داخل .py). لا يُرفع أبداً.
+BADAWI PROJECT/

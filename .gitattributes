@@ -1,0 +1,11 @@
+# الملفات النصية تُخزَّن بنهايات LF في المستودع
+* text=auto eol=lf
+
+# ملفات Python تُخزَّن كما هي (مهم لملف BADAWI PROJECT.py المدمج)
+*.py text eol=lf
+
+# الملفات الثنائية
+*.exe binary
+*.cer binary
+*.png binary
+*.pmbak binary
