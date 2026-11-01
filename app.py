@@ -532,6 +532,9 @@ html[data-theme="light"]{
 }
 body{font-family:"IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;background:var(--bg);padding:84px 24px 32px;letter-spacing:.01em}
 body:before{content:"";position:fixed;inset:0 0 auto;height:240px;pointer-events:none;background:linear-gradient(180deg,rgba(94,224,193,.08),transparent);z-index:-1}body{overflow-x:hidden}
+html[lang="en"] body{font-family:"Type Sense","Bodoni 72","Bodoni MT","Didot","Georgia",serif;letter-spacing:.005em}
+html[lang="en"] header h1,html[lang="en"] .brand-mini,html[lang="en"] .login-logo{font-family:"Type Sense","Bodoni 72","Bodoni MT","Didot","Georgia",serif;font-weight:700;letter-spacing:-.025em}
+html[lang="en"] input,html[lang="en"] select,html[lang="en"] textarea,html[lang="en"] button{font-family:inherit}
 .container{max-width:1120px}
 .topcontrols{height:64px;padding:0 max(24px,calc((100vw - 1120px)/2));background:rgba(18,35,45,.94);border-bottom:1px solid var(--border2);box-shadow:0 8px 26px rgba(0,0,0,.16)}
 html[data-theme="light"] .topcontrols{background:rgba(255,255,255,.94)}
