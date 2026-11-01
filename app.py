@@ -519,6 +519,60 @@ tbody tr:hover{background:var(--hover)}
 .bk-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--border);background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;flex-wrap:wrap}
 .bk-name{font-size:13px;color:var(--text);font-weight:600}
 .bk-meta{font-size:11px;color:var(--mute);margin-top:2px}
+/* ---------- تحديث واجهة المستشفى ---------- */
+:root{
+  --bg:#0b1720;--surface:#12232d;--surface2:#0d1c25;--border:#203844;--border2:#315362;
+  --text:#edf7f5;--dim:#a8c1c3;--mute:#78969b;--accent:#5ee0c1;--accent2:#2dc5a4;--ink:#09221e;
+  --hover:#17313b;--chip:#193541;--chip2:#285061;--shadow:0 18px 44px rgba(0,0,0,.24);--shadow-sm:0 5px 18px rgba(0,0,0,.16);
+}
+html[data-theme="light"]{
+  --bg:#f1f7f6;--surface:#ffffff;--surface2:#f6fbfa;--border:#d9e9e6;--border2:#bed8d3;
+  --text:#17343a;--dim:#557078;--mute:#718b91;--accent:#087f72;--accent2:#05665b;--ink:#ffffff;
+  --hover:#eff8f6;--chip:#e5f1ef;--chip2:#d4e7e3;--shadow:0 18px 44px rgba(26,77,70,.11);--shadow-sm:0 5px 18px rgba(26,77,70,.07);
+}
+body{font-family:"Noto Sans Arabic","IBM Plex Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;background:var(--bg);padding:84px 24px 32px;letter-spacing:.01em}
+body:before{content:"";position:fixed;inset:0 0 auto;height:240px;pointer-events:none;background:linear-gradient(180deg,rgba(94,224,193,.08),transparent);z-index:-1}body{overflow-x:hidden}
+.container{max-width:1120px}
+.topcontrols{height:64px;padding:0 max(24px,calc((100vw - 1120px)/2));background:rgba(18,35,45,.94);border-bottom:1px solid var(--border2);box-shadow:0 8px 26px rgba(0,0,0,.16)}
+html[data-theme="light"] .topcontrols{background:rgba(255,255,255,.94)}
+.brand-mini{font-size:16px;letter-spacing:-.02em}
+.seg{border-radius:11px;padding:3px;background:var(--chip);border-color:var(--border2)}
+.seg-btn{border-radius:8px;padding:7px 14px;font-size:12px}
+.ctl-btn{border-radius:10px;width:38px;height:38px}
+header{padding:28px 30px 26px;margin-bottom:24px;text-align:start;border:1px solid var(--border);border-radius:20px;background:var(--surface);box-shadow:var(--shadow-sm)}
+header h1{font-size:32px;letter-spacing:-.04em;color:var(--text);line-height:1.35}
+header p{font-size:14px;max-width:650px;line-height:1.9}
+.card{border-radius:20px;padding:28px;margin-bottom:22px;box-shadow:var(--shadow)}
+.card h2{font-size:19px;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:10px}
+.card h2:before{content:"";display:inline-block;width:5px;height:22px;border-radius:5px;background:var(--accent)}
+.form-grid{gap:18px}
+.form-group label{font-size:12px;font-weight:700;letter-spacing:.02em}
+.form-group input,.form-group select,.form-group textarea,.search-bar input,.login-field input{min-height:48px;border-radius:12px;padding:12px 15px;background:var(--surface2);border-color:var(--border2);transition:border-color .2s,box-shadow .2s,background .2s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus,.search-bar input:focus,.login-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(94,224,193,.13);background:var(--surface)}
+.form-group textarea{min-height:90px;line-height:1.8}
+.btn{border-radius:11px;min-height:46px;padding:11px 21px;letter-spacing:.01em}
+.btn-primary{background:var(--accent);box-shadow:0 6px 14px rgba(45,197,164,.18)}
+.btn-primary:hover{background:var(--accent2);transform:translateY(-1px)}
+.btn-secondary,.btn-mini{border-radius:11px}
+.topbar{border-radius:16px;padding:12px 16px;margin-bottom:22px}
+.topbar-user{font-size:13px}
+.role-badge{padding:5px 10px}
+.search-bar{gap:12px}
+.search-bar input{min-height:48px}
+table{border-spacing:0 7px;border-collapse:separate;margin-top:-7px}
+th{padding:13px 12px;border-bottom:1px solid var(--border);font-size:12px;white-space:nowrap}
+td{padding:14px 12px;border-bottom:1px solid var(--border);line-height:1.6}
+tbody tr{background:var(--surface2)}
+tbody tr td:first-child{border-radius:0 10px 10px 0}
+tbody tr td:last-child{border-radius:10px 0 0 10px}
+tbody tr:hover{background:var(--hover)}
+#appView>.container>.card{overflow-x:auto}
+.login-card{border-radius:22px;padding:40px 34px;box-shadow:var(--shadow)}
+.login-logo{font-size:30px;letter-spacing:-.04em}
+.login-btn{border-radius:11px;background:var(--accent);box-shadow:0 7px 18px rgba(45,197,164,.2)}
+.modal{border-radius:20px;box-shadow:var(--shadow);padding:30px}
+.toast{border-radius:12px;padding:13px 20px}
+@media(max-width:700px){body{padding:76px 14px 24px}.topcontrols{padding:0 14px}header{padding:23px 20px}header h1{font-size:26px}.card{padding:20px;border-radius:16px}.topbar{align-items:flex-start}.topbar-actions{width:100%}.topbar-actions .btn-mini{flex:1}.form-grid{grid-template-columns:1fr}.form-group.full{grid-column:auto}}
 </style>
 </head>
 <body>
