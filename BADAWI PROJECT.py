@@ -169,8 +169,8 @@ DATA_STATUS = {"warning": ""}
 # ------------------------------------------------------------------
 
 _SEED_FILES = {
-    "patients.json": "ewogICJfZm9ybWF0IjogIlBNMSIsCiAgIl9ub3RlIjogItio2YrYp9mG2KfYqiDZhdi02YHZkdix2KkgLSDZhNinINiq2Y/Yudiv2ZHZhCDZitiv2YjZitin2YsgLyBlbmNyeXB0ZWQgLSBkbyBub3QgZWRpdCIsCiAgInNhbHQiOiAiYzNkMGYyMzM1ZTc0ZTU3ZmY0YTc5MGNkZDBhYjUyMTAiLAogICJub25jZSI6ICI0ZmM2NWE0ODQxNmM4Mjg2MTEwOTUyMmE5MjYxNjhlZiIsCiAgInRhZyI6ICJkZmE2NWY0ZGZlODAxYjg1NWFiYTI1MGUyNDUxZTAzZDFhNWYwMTQ5M2U1MTI4NWJiMmVkZjE0OWQzNDY2NThiIiwKICAiZGF0YSI6ICJ2M0k9Igp9",
-    "users.json": "ewogICJfZm9ybWF0IjogIlBNMSIsCiAgIl9ub3RlIjogItio2YrYp9mG2KfYqiDZhdi02YHZkdix2KkgLSDZhNinINiq2Y/Yudiv2ZHZhCDZitiv2YjZitin2YsgLyBlbmNyeXB0ZWQgLSBkbyBub3QgZWRpdCIsCiAgInNhbHQiOiAiYTY1ZjI3MGQ1ZThmNGYwOTc1ZGYyMWM1MDJkNzViZTMiLAogICJub25jZSI6ICI2Y2M0ZWU1NjdlMDNmNTBmZjA5MWJhNDMyZWIwN2I3NiIsCiAgInRhZyI6ICJjNGE4YTM4MjUzMWI2NmI5MzMyNGY2OTZmYThmMDM5YzQ0OWRmZWFmMGZiOGM5ODY0M2M3OTgzOTdjY2JlZTcwIiwKICAiZGF0YSI6ICJQSS9wcC9JQzcwTmN5U2t1Wjl5eHpuS2dyQjcwMnhPU1AvQldFcTBCaWMreGtxVHZ4L1lFRHV2ditBYzNPV0dVN2pxa1paTzRxQjJKNGVYUnVCSzV2MktwajFuQ3JhaHZvYkR4RzhDWXp3UU5iTitUNFV6OEdPM090Uk0vRm9SL1dhdm1Hanc1Z2JORzBSRFZQQk90QlJaMm9oVVFra0VqSDdndHk3WEZ5alo5Nzh2RUdObExyOWE3amIxT01nMkx5SWNhdE5KWXdWSzZHNXQyVUJnUGlQNXhLRjZkZ1p1YkxnbVo1azV0YTJMTE12ekVIRGpHQ0ZOazNSejdBQmtsMk1DMUd0TTc2VnZaeEF1Sm9BZ1Q1cCt0K2xIQzVCM0pBeGsxdWxHK25WR09oRkJZelAzUU8rcnR2Y2tWZjhhRjFURThWb1B6NmYvdURtSGpqK3c4aHBKOEJwS0xCOWFTUi9oOWZSdHJDQjZHUEN6VjRCbUxqSDYxaWpRTitacTVqdXI0aEJIZmlxbnJOZ1N2R2xueTBRPT0iCn0=",
+    "patients.json": "ewogICJfZm9ybWF0IjogIlBNMSIsCiAgIl9ub3RlIjogItio2YrYp9mG2KfYqiDZhdi02YHZkdix2KkgLSDZhNinINiq2Y/Yudiv2ZHZhCDZitiv2YjZitin2YsgLyBlbmNyeXB0ZWQgLSBkbyBub3QgZWRpdCIsCiAgInNhbHQiOiAiMzAyZmIzODY5MmFkM2ZkNmRhMmM3NzI1MmIxYWVjMDMiLAogICJub25jZSI6ICJhMDRjNWU0MjQzYjgxZTRkMmQyYzFjZWE4NzgyYmIwMCIsCiAgInRhZyI6ICIzNDYwNWFkYTMzZTUwYTA0NTE2OWU1MDU0NWRiZDE2YjAyNzU4NmVmMTEyOWI5OWQ3NTcxMDlmMDEyYWU0MzkwIiwKICAiZGF0YSI6ICJYTjA9Igp9",
+    "users.json": "ewogICJfZm9ybWF0IjogIlBNMSIsCiAgIl9ub3RlIjogItio2YrYp9mG2KfYqiDZhdi02YHZkdix2KkgLSDZhNinINiq2Y/Yudiv2ZHZhCDZitiv2YjZitin2YsgLyBlbmNyeXB0ZWQgLSBkbyBub3QgZWRpdCIsCiAgInNhbHQiOiAiM2NlNGRmY2E5YjIwNjJjMzA0MzA2NDJjYjM2MjVmZTEiLAogICJub25jZSI6ICJmY2FjNzAwZGFjOWRhYTk3MDgwNmY2YzEzMzQzNmM0MiIsCiAgInRhZyI6ICI5MjJjZWYzN2UwODkzYTI2NDI2YjZhNzMzYjgzZmMzOWM0ZWZiMmZlYTkxMDRlOTlhYzM4Mzc3NDZjOTUzYTgzIiwKICAiZGF0YSI6ICJvTjdpdnFId3hTYkJDTmZNRU9UdEpxS1g5cFN1SFZRRU1jTlp3VFZRR2pncVI2VmNHemdZQWhuU1pqeVV2ajN1dU42RE9CUkxrckYwcHV1YjNrdEthbjlWajlPZ1BuRThWNU9EYkdQNUVOSlpSaEhmcWFQQWhmdTU3ZDUwdUVVSG9wc3lFQktWbENLdmoxd3d3aGNoTVJ6aGd5UkhGTUV4aXpldVFtMEk1c01TU2RaZkp5NDRXK2lHdzBvMTJLczNwTGx6Z0d3bFhDZWphczNka3VYT0VYaFJZZnJUQndNWFRxSXdHbEdEVFE0SU5BMkxiZ0tpN3hLZlI3SUY5ZE9DeXh4bXdnTVd6WFdHb1RzWFFwcjRnWFZLSW5CNlFpRkRudCt5RU5pY29rZW85SnlSMDM2Sk1SVEpsZkc2MnFTbkJUUDI0YkNPcG1oUnhBWmRpUTBlZFhHd1NBRXZrSEVnYzJCWUxRN0VzYlF3M0hULzQwRzIyRGJUV0d2MjVhQ0N0Z1Awek5MWDJqaW4vSGtCUDAvTEN3PT0iCn0=",
     "settings.json": "ewogICJsYW5nIjogImFyIiwKICAidGhlbWUiOiAiZGFyayIsCiAgImxhc3RfZWRpdCI6ICIiCn0=",
 }
 
@@ -532,6 +532,9 @@ HTML_CONTENT = r"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>مستشفى الخيري</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
 try{
   var _p=JSON.parse(localStorage.getItem('pm_prefs')||'{}');
@@ -560,7 +563,7 @@ html[data-theme="light"]{
 body{font-family:"IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px;padding-top:76px;transition:background .25s,color .25s}
 .container{max-width:1000px;margin:0 auto}
 header{text-align:center;padding:18px 0 16px;border-bottom:1px solid var(--border);margin-bottom:20px}
-header h1{font-family:"Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:34px;color:var(--accent);font-weight:800;letter-spacing:-.055em;line-height:1.45}
+header h1{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:34px;color:var(--accent);font-weight:400;letter-spacing:0;line-height:1.45}
 header p{color:var(--mute);margin-top:8px;font-size:14px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
 .card h2{font-size:18px;color:var(--accent);margin-bottom:18px;font-weight:600}
@@ -627,7 +630,7 @@ tbody tr:hover{background:var(--hover)}
 #loginView{display:none;min-height:70vh;align-items:center;justify-content:center}
 #loginView.show{display:flex}
 .login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 32px;width:100%;max-width:390px;box-shadow:var(--shadow)}
-.login-logo{font-family:"Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;text-align:center;font-size:28px;font-weight:800;color:var(--accent);margin-bottom:6px;letter-spacing:-.04em}
+.login-logo{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;text-align:center;font-size:28px;font-weight:400;color:var(--accent);margin-bottom:6px;letter-spacing:0}
 .login-sub{text-align:center;color:var(--mute);font-size:13px;margin-bottom:26px}
 .login-field{margin-bottom:16px}
 .login-field label{display:block;font-size:13px;color:var(--dim);margin-bottom:6px}
@@ -686,12 +689,12 @@ html[lang="en"] input,html[lang="en"] select,html[lang="en"] textarea,html[lang=
 .container{max-width:1120px}
 .topcontrols{height:64px;padding:0 max(24px,calc((100vw - 1120px)/2));background:rgba(18,35,45,.94);border-bottom:1px solid var(--border2);box-shadow:0 8px 26px rgba(0,0,0,.16)}
 html[data-theme="light"] .topcontrols{background:rgba(255,255,255,.94)}
-.brand-mini{font-family:"Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:17px;letter-spacing:-.035em;font-weight:800}
+.brand-mini{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:17px;letter-spacing:0;font-weight:400}
 .seg{border-radius:11px;padding:3px;background:var(--chip);border-color:var(--border2)}
 .seg-btn{border-radius:8px;padding:7px 14px;font-size:12px}
 .ctl-btn{border-radius:10px;width:38px;height:38px}
 header{padding:28px 30px 26px;margin-bottom:24px;text-align:start;border:1px solid var(--border);border-radius:20px;background:var(--surface);box-shadow:var(--shadow-sm)}
-header h1{font-family:"Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:34px;letter-spacing:-.055em;color:var(--accent);line-height:1.45;font-weight:800;text-shadow:0 1px 0 rgba(255,255,255,.45)}
+header h1{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:34px;letter-spacing:0;color:var(--accent);line-height:1.45;font-weight:400;text-shadow:0 1px 0 rgba(255,255,255,.45)}
 header p{font-size:14px;max-width:650px;line-height:1.9}
 .card{border-radius:20px;padding:28px;margin-bottom:22px;box-shadow:var(--shadow)}
 .card h2{font-size:19px;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:10px}
