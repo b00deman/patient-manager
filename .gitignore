@@ -1,26 +1,35 @@
+# ---- Python ----
 __pycache__/
 *.pyc
+*.pyo
+
+# ---- PyInstaller ----
 build/
 dist/
-*.spec
-*.exe
+*.spec.bak
 
-# بيانات حقيقية — لا ترفعها أبداً
-patients.json
-patients.json.tmp
-users.json
-settings.json
+# ---- Binaries / build outputs ----
+*.exe
+*.old
+*.pkg
+*.cer
+
+# ---- Logs ----
+*.log
+
+# ---- Local backups ----
+*.bak-*
 backups/
 
-# سكربتات ولقطات شاشة للتطوير
-uitest.py
-shot.py
-debug.py
-ui_*.png
-ui[0-9]*.png
-preview_*.png
-_extracted.html
+# ---- Patient data (never commit medical records) ----
+patients.json
+users.json
+settings.json
+lab_requests.json
 
-# مجلد التسليم الشخصي — يحتوي نسخة مبنية ببيانات المرضى الحقيقية
-# (نسخة patients.json المدمجة داخل .py). لا يُرفع أبداً.
-BADAWI PROJECT/
+# ---- OS / editor ----
+Thumbs.db
+desktop.ini
+.DS_Store
+.idea/
+.vscode/

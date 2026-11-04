@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-مستشفى الخيري - نظام تسجيل بيانات المرضى   |   BADAWI PROJECT
-Al-Khairi Hospital - Patient Records System |   BADAWI PROJECT
+مستشفى الشيخ برير الشيخ الصديق - نظام تسجيل بيانات المرضى   |   BADAWI PROJECT
+Alsheikh Berair Hospital - Patient Records System |   BADAWI PROJECT
 
 النسخة المحمولة الكاملة: المشروع كله في ملف واحد (BADAWI PROJECT.py)
 Portable all-in-one edition: the whole project lives in this single file.
@@ -62,7 +62,8 @@ from datetime import datetime
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
 
-PORT_DEFAULT = 17755
+PORT_DEFAULT = 17760
+APP_TAG = "badawi-hospital"
 
 
 def _parse_args():
@@ -160,7 +161,7 @@ SESSIONS = {}
 DEFAULT_ADMIN_USER = "badawi"
 DEFAULT_ADMIN_PASS = "Badawi@2026"
 
-PERMS = ["view", "add", "edit", "delete", "print"]
+PERMS = ["view", "add", "edit", "delete", "print", "lab"]
 
 DATA_STATUS = {"warning": ""}
 
@@ -169,8 +170,8 @@ DATA_STATUS = {"warning": ""}
 # ------------------------------------------------------------------
 
 _SEED_FILES = {
-    "patients.json": "ewogICJfZm9ybWF0IjogIlBNMSIsCiAgIl9ub3RlIjogItio2YrYp9mG2KfYqiDZhdi02YHZkdix2KkgLSDZhNinINiq2Y/Yudiv2ZHZhCDZitiv2YjZitin2YsgLyBlbmNyeXB0ZWQgLSBkbyBub3QgZWRpdCIsCiAgInNhbHQiOiAiMzAyZmIzODY5MmFkM2ZkNmRhMmM3NzI1MmIxYWVjMDMiLAogICJub25jZSI6ICJhMDRjNWU0MjQzYjgxZTRkMmQyYzFjZWE4NzgyYmIwMCIsCiAgInRhZyI6ICIzNDYwNWFkYTMzZTUwYTA0NTE2OWU1MDU0NWRiZDE2YjAyNzU4NmVmMTEyOWI5OWQ3NTcxMDlmMDEyYWU0MzkwIiwKICAiZGF0YSI6ICJYTjA9Igp9",
-    "users.json": "ewogICJfZm9ybWF0IjogIlBNMSIsCiAgIl9ub3RlIjogItio2YrYp9mG2KfYqiDZhdi02YHZkdix2KkgLSDZhNinINiq2Y/Yudiv2ZHZhCDZitiv2YjZitin2YsgLyBlbmNyeXB0ZWQgLSBkbyBub3QgZWRpdCIsCiAgInNhbHQiOiAiM2NlNGRmY2E5YjIwNjJjMzA0MzA2NDJjYjM2MjVmZTEiLAogICJub25jZSI6ICJmY2FjNzAwZGFjOWRhYTk3MDgwNmY2YzEzMzQzNmM0MiIsCiAgInRhZyI6ICI5MjJjZWYzN2UwODkzYTI2NDI2YjZhNzMzYjgzZmMzOWM0ZWZiMmZlYTkxMDRlOTlhYzM4Mzc3NDZjOTUzYTgzIiwKICAiZGF0YSI6ICJvTjdpdnFId3hTYkJDTmZNRU9UdEpxS1g5cFN1SFZRRU1jTlp3VFZRR2pncVI2VmNHemdZQWhuU1pqeVV2ajN1dU42RE9CUkxrckYwcHV1YjNrdEthbjlWajlPZ1BuRThWNU9EYkdQNUVOSlpSaEhmcWFQQWhmdTU3ZDUwdUVVSG9wc3lFQktWbENLdmoxd3d3aGNoTVJ6aGd5UkhGTUV4aXpldVFtMEk1c01TU2RaZkp5NDRXK2lHdzBvMTJLczNwTGx6Z0d3bFhDZWphczNka3VYT0VYaFJZZnJUQndNWFRxSXdHbEdEVFE0SU5BMkxiZ0tpN3hLZlI3SUY5ZE9DeXh4bXdnTVd6WFdHb1RzWFFwcjRnWFZLSW5CNlFpRkRudCt5RU5pY29rZW85SnlSMDM2Sk1SVEpsZkc2MnFTbkJUUDI0YkNPcG1oUnhBWmRpUTBlZFhHd1NBRXZrSEVnYzJCWUxRN0VzYlF3M0hULzQwRzIyRGJUV0d2MjVhQ0N0Z1Awek5MWDJqaW4vSGtCUDAvTEN3PT0iCn0=",
+    "patients.json": "ew0KICAiX2Zvcm1hdCI6ICJQTTEiLA0KICAiX25vdGUiOiAi2KjZitin2YbYp9iqINmF2LTZgdmR2LHYqSAtINmE2Kcg2KrZj9i52K/ZkdmEINmK2K/ZiNmK2KfZiyAvIGVuY3J5cHRlZCAtIGRvIG5vdCBlZGl0IiwNCiAgInNhbHQiOiAiOGZmMjFiNjg1ZjQ1NWYyMWVlMmQ0ZDM2ODFmYmFhYjMiLA0KICAibm9uY2UiOiAiMmM2N2I1ZjA1OThlMzgwZTAxNjQ4NGI2ODFiOThlNTkiLA0KICAidGFnIjogIjczMjUzOWM5YWM0ZDNmZWZiMzgwNWUxMzE5N2JjMWY3NTkyMmEyNmNmMzRhNDY0ZTcyN2I3NThmOGZlYTJiOWUiLA0KICAiZGF0YSI6ICI0SzBmbGp0cmJnTVRlaDNtL3pPeVl0RHh4NUJUY0VuejNlV2R3S0o3M09ZZnh6YlhZbWtLeEZQQ1AwYm1ZYSsybjYzN1ZDM05LWjJEaW82RjZQY1pSUncrMDRlME9nak4rcmVQQmRDQWFqbWtiQW04emhWdzdVbk9uMm9pMy9rQUpHNVV0enlpbmc5UGhuenZxbUdidUhsK2dDV2pLWmpXaUM1OHh5ZFVpTVJVcGVQMG1ka01OeUlhNWxxWnMwSmpLSFJIUEhtUlFyYVdoUE1lUVVoSzJuOFJISitUUEVjSzRkbXhOK3pDdjhTOEhFa0xpclVRSVlpWSt1YnhCZ3ovd3dVcnAzUXJPVXYvUXNVazhSTzdzRWcyNmxHcDlpcGJiVDdyRzVDZFRXRnRiWEVUK1NNOHYxR3E2OUYxTWFIMGVGM2kzNW9hTUIweFd6MHMwZ3NwZmo4Yk5YRVBEWEJPaDN0RFA1bnk1SUQ5bjBveUZoaEhYZU9OZUNPdHpDKzVDVHlLVUZQSWVFeTJkM2p5TEdackVoTGF6aWdDMXZDRjI5Ym9JdkRCZHQ5NExiMFVBL3owOFlNNHZHYTRUMnhGRXJSQWs1bkVEMmduYnhVRGp2dmxvVm0yakVCdUUvQmt3YzY2K1I1OUhqL2Y2UEdocVFYaXBjSjN5Ly9KelMvdzhKdi9LaTdRIg0KfQ==",
+    "users.json": "ew0KICAiX2Zvcm1hdCI6ICJQTTEiLA0KICAiX25vdGUiOiAi2KjZitin2YbYp9iqINmF2LTZgdmR2LHYqSAtINmE2Kcg2KrZj9i52K/ZkdmEINmK2K/ZiNmK2KfZiyAvIGVuY3J5cHRlZCAtIGRvIG5vdCBlZGl0IiwNCiAgInNhbHQiOiAiNWY4OGY0MTA4ZTA3MjRjMDhlZmEwNTUwNWRhNjk5YzgiLA0KICAibm9uY2UiOiAiY2Q2NDg2OWRmYzgxMGNlM2E0N2Q4ODcyZThhNjI5NjYiLA0KICAidGFnIjogImQ3NGE4YjIzZWQ1OTkzMmRhMWFhYWI2ZDY5ODJiMmQ0M2E2ZTQyNzYzZGM4ODIxYWZmNWY1MDdhZWJjYmZmYmUiLA0KICAiZGF0YSI6ICI2dGZVdW9XTDVSYmI1Vm14N3ViV2hvcERTbnFnTlJ5T0E2Vk9ZUVEzU1J3ZmF5YnJkS1ZGSElDMXRWdVR3UjhBVzR6MjBuU28yTzNEdjNqMGJNczdJWVNvTUYrU01xWDNvdnhFSkxWQzZaSkZ1U2lSZ2d0RVFqckZNWkZEKytPNEhYZElab2VNUVJiWkJONUp3VkUydkpCcTBJdWd4VjYzNEhQUHJFZ0VEOUdSNmtzN3g0TXErYUprMUkxYkpMeUhDOW9XTlBOellmNmxadmVUWjlOcDF4UzB5SXlGMm0vNDlyRXA3ajdWSWlnOS82YXRkZjM0cm9XQ1lsWndrUnNiTXdDemNlclhDN1ZibUdhWms2OTlPMk9JN3Y3ZEh4RDhzaVhmTEFZaEN0SlJ6bUNLdW1mLzI0NEQwTm5CeGpGZk9OYWdQOFVsWEJCbDc3di9USi9vcWltaVdVeHdMaE5ROFAxWmlhVmRGSlVzdldyWmUzVEMxeElyMjhmTjUzZ1N2QUVUWTNwZGZkQ2VTTTFtZWJYQTJRPT0iDQp9",
     "settings.json": "ewogICJsYW5nIjogImFyIiwKICAidGhlbWUiOiAiZGFyayIsCiAgImxhc3RfZWRpdCI6ICIiCn0=",
 }
 
@@ -312,7 +313,7 @@ def verify_password(password, stored):
 #  الإعدادات (اللغة / الثيم / آخر تعديل)
 # ------------------------------------------------------------------
 
-DEFAULT_SETTINGS = {"lang": "ar", "theme": "dark", "last_edit": ""}
+DEFAULT_SETTINGS = {"lang": "ar", "theme": "dark", "last_edit": "", "last_ticket_number": 0}
 
 
 def load_settings():
@@ -471,6 +472,21 @@ def next_id(patients):
     return max(p["id"] for p in patients) + 1
 
 
+def peek_next_ticket_number(patients):
+    settings = load_settings()
+    last = int(settings.get("last_ticket_number", 0) or 0)
+    existing = [int(p.get("ticket_no", p.get("id", 0)) or 0) for p in patients]
+    return max([last] + existing) + 1
+
+
+def allocate_ticket_number(patients):
+    settings = load_settings()
+    number = peek_next_ticket_number(patients)
+    settings["last_ticket_number"] = number
+    save_settings(settings)
+    return number
+
+
 # ------------------------------------------------------------------
 #  المستخدمون
 # ------------------------------------------------------------------
@@ -531,10 +547,10 @@ HTML_CONTENT = r"""<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>مستشفى الخيري</title>
+<title>مستشفى الشيخ برير الشيخ الصديق</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lalezar&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lalezar&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script>
 try{
   var _p=JSON.parse(localStorage.getItem('pm_prefs')||'{}');
@@ -543,222 +559,315 @@ try{
 }catch(e){}
 </script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+/* ============================================================
+   مستشفى الشيخ برير الشيخ الصديق — refreshed UI (colors / typography / spacing)
+   Consolidated single theme system — dark + light
+   ============================================================ */
+
+/* ---------- Design tokens ---------- */
 :root{
-  --bg:#0f1923;--surface:#162029;--surface2:#0f1923;--border:#1e2d3a;--border2:#2a3b4a;
-  --text:#e0e6ed;--dim:#90a4ae;--mute:#78909c;--accent:#4fc3f7;--accent2:#29b6f6;--ink:#0f1923;
-  --hover:#1a2632;--chip:#263238;--chip2:#37474f;
-  --shadow:0 20px 60px rgba(0,0,0,.45);--shadow-sm:0 2px 12px rgba(0,0,0,.18);
-  --danger:#ef5350;--danger2:#e53935;--warn:#ffa726;--warn2:#fb8c00;--ok:#66bb6a;--ok2:#43a047;
-  --logout-bg:#3e2723;--logout-fg:#ff8a80;--logout-bg2:#4e342e;--logout-fg2:#ffab91;
+  color-scheme:dark;
+  /* الوضع الداكن — الألوان الفاتحة: #F6FBFF / #D6ECFF */
+  --bg:#0d1319;--surface:#161e26;--surface2:#111921;--border:#263440;--border2:#384a59;
+  --text:#F6FBFF;--dim:#D6ECFF;--mute:#9FB8CC;
+  --accent:#F6FBFF;--accent2:#D6ECFF;--ink:#171F27;--accent-soft:rgba(214,236,255,.14);
+  --hover:#1c2833;--chip:#1e2b37;--chip2:#2d3f4e;
+  --shadow:0 1px 2px rgba(0,0,0,.22),0 20px 48px -20px rgba(0,0,0,.55);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.18),0 8px 20px -12px rgba(0,0,0,.40);
+  --danger:#f2685f;--danger2:#df4d44;--warn:#f5a524;--warn2:#df8d0f;--ok:#4fc26b;--ok2:#3ba757;
+  --logout-bg:#3a2320;--logout-fg:#ff9d94;--logout-bg2:#4a2e2a;--logout-fg2:#ffb5ab;
+  --radius:18px;--radius-sm:11px;--radius-input:12px;
 }
 html[data-theme="light"]{
-  --bg:#eef3f8;--surface:#ffffff;--surface2:#f7fafd;--border:#dae4ee;--border2:#c3d4e3;
-  --text:#12232e;--dim:#4d6679;--mute:#6d8598;--accent:#0277bd;--accent2:#01579b;--ink:#ffffff;
-  --hover:#f1f7fc;--chip:#e6eef6;--chip2:#d7e5f1;
-  --shadow:0 14px 44px rgba(16,42,60,.14);--shadow-sm:0 2px 10px rgba(16,42,60,.07);
-  --danger:#e53935;--danger2:#c62828;--warn:#ef6c00;--warn2:#e65100;--ok:#2e7d32;--ok2:#1b5e20;
-  --logout-bg:#fdecea;--logout-fg:#c62828;--logout-bg2:#fbd9d6;--logout-fg2:#b71c1c;
+  color-scheme:light;
+  /* الوضع النهاري — الألوان الغامقة: #383838 / #707070 / #A8A8A8 / #8B8C84 */
+  --bg:#F3F4F4;--surface:#FFFFFF;--surface2:#F7F8F8;--border:#D6D8D7;--border2:#A8A8A8;
+  --text:#383838;--dim:#707070;--mute:#8B8C84;
+  --accent:#383838;--accent2:#707070;--ink:#F6FBFF;--accent-soft:rgba(56,56,56,.10);
+  --hover:#E9EAEA;--chip:#E7E8E8;--chip2:#C9CBC9;
+  --shadow:0 1px 2px rgba(30,35,38,.07),0 20px 46px -20px rgba(30,35,38,.28);
+  --shadow-sm:0 1px 2px rgba(30,35,38,.05),0 8px 20px -12px rgba(30,35,38,.16);
+  --danger:#d94f45;--danger2:#b93a31;--warn:#e07f10;--warn2:#c66a08;--ok:#2f8f46;--ok2:#227136;
+  --logout-bg:#fdecea;--logout-fg:#c0392b;--logout-bg2:#f9dcd8;--logout-fg2:#a93226;
 }
-body{font-family:"IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px;padding-top:76px;transition:background .25s,color .25s}
-.container{max-width:1000px;margin:0 auto}
-header{text-align:center;padding:18px 0 16px;border-bottom:1px solid var(--border);margin-bottom:20px}
-header h1{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:34px;color:var(--accent);font-weight:400;letter-spacing:0;line-height:1.45}
-header p{color:var(--mute);margin-top:8px;font-size:14px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
-.card h2{font-size:18px;color:var(--accent);margin-bottom:18px;font-weight:600}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.form-group{display:flex;flex-direction:column}
-.form-group.full{grid-column:1/-1}
-.form-group label{font-size:13px;color:var(--dim);margin-bottom:6px}
-.form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none;transition:border-color .2s}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
-.form-group textarea{resize:vertical;min-height:60px}
-.btn-row{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
-.btn{padding:11px 26px;border:none;border-radius:8px;font-size:15px;font-family:inherit;cursor:pointer;transition:all .2s;font-weight:600}
-.btn-primary{background:var(--accent);color:var(--ink)}
-.btn-primary:hover{background:var(--accent2)}
-.btn-ok{background:var(--ok);color:#fff}
-.btn-ok:hover{background:var(--ok2)}
-.btn-secondary{background:var(--chip);color:var(--dim);border:1px solid var(--chip2)}
-.btn-secondary:hover{background:var(--chip2);color:var(--text)}
-.btn-sm{padding:6px 13px;font-size:13px;border-radius:6px}
-.btn-del{background:var(--danger);color:#fff}
-.btn-del:hover{background:var(--danger2)}
-.btn-warn{background:var(--warn);color:#fff}
-.btn-warn:hover{background:var(--warn2)}
-.search-bar{display:flex;gap:10px;margin-bottom:16px}
-.search-bar input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;color:var(--text);font-size:15px;outline:none;font-family:inherit}
-.search-bar input:focus{border-color:var(--accent)}
-.stats{font-size:13px;color:var(--mute);margin-bottom:14px}
-table{width:100%;border-collapse:collapse}
-th,td{padding:12px 10px;text-align:start;border-bottom:1px solid var(--border)}
-th{color:var(--accent);font-size:13px;font-weight:600}
-td{font-size:14px}
-tbody tr:hover{background:var(--hover)}
-.empty-msg{text-align:center;padding:40px;color:var(--mute);font-size:15px}
-.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--ok);color:#fff;padding:12px 24px;border-radius:8px;font-size:15px;z-index:3000;display:none;box-shadow:0 4px 20px rgba(0,0,0,.35);max-width:90vw;text-align:center}
-.toast.error{background:var(--danger)}
-.toast.show{display:block;animation:fadeIn .3s}
-@keyframes fadeIn{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
-.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:2000;justify-content:center;align-items:center;padding:20px;overflow:auto}
-.modal-overlay.show{display:flex}
-.modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:26px;width:100%;max-width:580px;max-height:90vh;overflow:auto;box-shadow:var(--shadow)}
-.modal h2{color:var(--accent);margin-bottom:18px;font-size:19px}
-.modal .form-grid{grid-template-columns:1fr 1fr}
-.modal .btn-row{justify-content:flex-end}
-.hint{font-size:13px;color:var(--mute);line-height:1.7;margin-bottom:14px}
-#printArea{background:#fff;color:#000;padding:24px;border-radius:8px;margin-bottom:16px}
-#printArea .ph-title{font-size:26px;font-weight:bold;text-align:center;margin-bottom:6px;color:#000}
-#printArea .ph-sub{text-align:center;font-size:14px;color:#333;margin-bottom:20px;border-bottom:2px solid #000;padding-bottom:12px}
-#printArea .ph-patient table{width:100%;border-collapse:collapse}
-#printArea .ph-patient th,#printArea .ph-patient td{padding:10px 14px;text-align:start;border:1px solid #999;font-size:15px;color:#000}
-#printArea .ph-patient th{background:#eee;font-weight:600;width:30%}
-@media print{html,body{background:#fff!important;padding:0!important}body *{visibility:hidden}.modal-overlay{background:transparent!important;position:static!important;padding:0!important;display:block!important}.modal{border:none!important;box-shadow:none!important;max-width:100%!important;max-height:none!important;padding:0!important;background:#fff!important}.modal h2,.modal .btn-row{display:none!important}#printArea,#printArea *{visibility:visible}#printArea{position:absolute!important;left:0;top:0;width:100%;padding:20px;margin:0;border-radius:0;box-shadow:none;background:#fff!important}}
 
-/* ---------- الشريط العلوي الثابت ---------- */
-.topcontrols{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--border);z-index:1500;box-shadow:var(--shadow-sm)}
-.brand-mini{font-size:14px;font-weight:700;color:var(--accent)}
+/* ---------- Base ---------- */
+*{margin:0;padding:0;box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--chip2) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--chip2);border-radius:10px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:var(--mute);background-clip:padding-box}
+::selection{background:var(--accent);color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg{flex:none}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+body{
+  font-family:"IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  padding:92px 24px 40px;letter-spacing:.01em;
+  transition:background .25s,color .25s;overflow-x:hidden;
+}
+body:before{
+  content:"";position:fixed;inset:0 0 auto;height:260px;pointer-events:none;
+  background:linear-gradient(180deg,var(--accent-soft),transparent);z-index:-1;
+}
+.container{max-width:1120px;margin:0 auto}
+
+html[lang="en"] body{font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:0}
+html[lang="en"] header h1,html[lang="en"] .brand-mini,html[lang="en"] .login-logo{font-family:"Inter","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;font-weight:800;letter-spacing:-.02em}
+html[lang="en"] input,html[lang="en"] select,html[lang="en"] textarea,html[lang="en"] button{font-family:inherit}
+
+input:-webkit-autofill{-webkit-box-shadow:0 0 0 1000px var(--surface2) inset;-webkit-text-fill-color:var(--text);caret-color:var(--text)}
+
+/* ---------- Fixed top controls ---------- */
+.topcontrols{
+  position:fixed;top:0;left:0;right:0;height:64px;display:flex;align-items:center;
+  justify-content:space-between;gap:12px;padding:0 max(24px,calc((100vw - 1120px)/2));
+  background:rgba(13,19,25,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);z-index:1500;box-shadow:0 8px 26px -18px rgba(0,0,0,.7);
+}
+html[data-theme="light"] .topcontrols{background:rgba(255,255,255,.86)}
+.brand-mini{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:18px;font-weight:400;letter-spacing:0;color:var(--accent)}
 .ctl-group{display:flex;align-items:center;gap:8px}
-.seg{display:flex;background:var(--chip);border:1px solid var(--border2);border-radius:8px;overflow:hidden}
-.seg-btn{background:transparent;border:none;color:var(--dim);padding:6px 13px;font-size:13px;font-family:inherit;cursor:pointer;font-weight:700}
-.seg-btn.active{background:var(--accent);color:var(--ink)}
-.ctl-btn{background:var(--chip);border:1px solid var(--border2);color:var(--text);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center}
-.ctl-btn:hover{background:var(--chip2)}
+.seg{display:flex;gap:2px;background:var(--chip);border:1px solid var(--border2);border-radius:11px;padding:3px}
+.seg-btn{background:transparent;border:none;color:var(--dim);padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;font-weight:700;border-radius:8px;transition:background .18s,color .18s}
+.seg-btn:hover{color:var(--text)}
+.seg-btn.active{background:var(--accent);color:var(--ink);box-shadow:0 2px 8px -3px rgba(0,0,0,.45)}
+.ctl-btn{background:var(--chip);border:1px solid var(--border2);color:var(--text);width:38px;height:38px;border-radius:10px;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .18s,transform .18s}
+.ctl-btn:hover{background:var(--chip2);transform:translateY(-1px)}
 
-/* ---------- شاشة الدخول ---------- */
-#loginView{display:none;min-height:70vh;align-items:center;justify-content:center}
+/* ---------- Login bar ---------- */
+#loginView{display:none;min-height:72vh;align-items:center;justify-content:center}
 #loginView.show{display:flex}
-.login-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 32px;width:100%;max-width:390px;box-shadow:var(--shadow)}
-.login-logo{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;text-align:center;font-size:28px;font-weight:400;color:var(--accent);margin-bottom:6px;letter-spacing:0}
-.login-sub{text-align:center;color:var(--mute);font-size:13px;margin-bottom:26px}
-.login-field{margin-bottom:16px}
-.login-field label{display:block;font-size:13px;color:var(--dim);margin-bottom:6px}
-.login-field input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none}
-.login-field input:focus{border-color:var(--accent)}
-.login-btn{width:100%;background:var(--accent);color:var(--ink);border:none;border-radius:8px;padding:13px;font-size:16px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:8px}
-.login-btn:hover{background:var(--accent2)}
-.login-btn:disabled{opacity:.6;cursor:wait}
-.login-error{color:var(--danger);font-size:13px;text-align:center;min-height:18px;margin-top:12px}
-.login-hint{color:var(--mute);font-size:12px;text-align:center;margin-top:18px;line-height:1.7}
+.login-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:24px;
+  padding:42px 36px;width:100%;max-width:760px;box-shadow:var(--shadow);
+  position:relative;overflow:hidden;
+}
+.login-card:before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--accent),var(--accent2) 55%,transparent)}
+.login-logo{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;text-align:center;font-size:32px;font-weight:400;letter-spacing:0;color:var(--accent);margin-bottom:6px}
+.login-sub{text-align:center;color:var(--mute);font-size:14px;margin-bottom:26px}
+.login-bar{display:flex;flex-direction:column;align-items:stretch;gap:12px;background:var(--surface2);border:1px solid var(--border2);border-radius:16px;padding:16px}
+.login-field{margin-bottom:0;width:100%;min-width:0}
+.login-field label{display:block;font-size:14px;font-weight:600;color:var(--dim);margin-bottom:7px}
+.login-field input{width:100%;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-input);padding:12px 15px;color:var(--text);font-size:16px;font-family:inherit;outline:none;min-height:48px;transition:border-color .18s,box-shadow .18s,background .18s}
+.login-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-inline-end:46px}
+.pw-eye{position:absolute;inset-inline-end:7px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:none;background:transparent;color:var(--mute);border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .18s,color .18s}
+.pw-eye:hover{background:var(--chip);color:var(--text)}
+.login-btn{width:100%;background:var(--accent);color:var(--ink);border:none;border-radius:var(--radius-sm);padding:13px 26px;min-height:48px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 8px 20px -10px rgba(0,0,0,.5);transition:background .18s,transform .18s,box-shadow .18s}
+.login-btn:hover{background:var(--accent2);transform:translateY(-1px)}
+.login-btn:disabled{opacity:.6;cursor:wait;transform:none}
+.login-error{color:var(--danger);font-size:14px;font-weight:600;text-align:center;min-height:18px;margin-top:12px}
 
-/* ---------- شريط المستخدم ---------- */
-.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;margin-bottom:18px;flex-wrap:wrap;box-shadow:var(--shadow-sm)}
+/* ---------- User bar ---------- */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px 16px;margin-bottom:22px;flex-wrap:wrap;box-shadow:var(--shadow-sm)}
 .topbar-user{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--dim);flex-wrap:wrap}
-.role-badge{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:700}
+.role-badge{font-size:12px;padding:4px 10px;border-radius:20px;font-weight:700}
 .role-admin{background:var(--accent);color:var(--ink)}
 .role-user{background:var(--chip2);color:var(--text)}
 .topbar-actions{display:flex;gap:8px;flex-wrap:wrap}
-.btn-mini{background:var(--chip);color:var(--dim);border:1px solid var(--chip2);border-radius:7px;padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;font-weight:600}
-.btn-mini:hover{background:var(--chip2);color:var(--text)}
+.btn-mini{display:inline-flex;align-items:center;gap:7px;background:var(--chip);color:var(--dim);border:1px solid var(--chip2);border-radius:10px;padding:8px 15px;font-size:14px;font-family:inherit;cursor:pointer;font-weight:600;min-height:36px;transition:background .18s,color .18s,transform .18s}
+.btn-mini:hover{background:var(--chip2);color:var(--text);transform:translateY(-1px)}
 .btn-logout{background:var(--logout-bg);color:var(--logout-fg);border-color:var(--logout-bg)}
 .btn-logout:hover{background:var(--logout-bg2);color:var(--logout-fg2)}
-.last-edit{font-size:12px;color:var(--mute)}
+.last-edit{font-size:13px;color:var(--mute)}
 #appView{display:none}
 #appView.show{display:block}
 
-/* ---------- إدارة المستخدمين ---------- */
-.user-row{border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;background:var(--surface2)}
+/* ---------- Header ---------- */
+header{
+  position:relative;overflow:hidden;text-align:start;padding:28px 30px 26px;margin-bottom:24px;
+  border:1px solid var(--border);border-radius:20px;background:var(--surface);box-shadow:var(--shadow-sm);
+}
+header:after{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--accent),transparent)}
+header h1{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:36px;letter-spacing:0;color:var(--accent);line-height:1.45;font-weight:400}
+header p{font-size:15px;color:var(--mute);max-width:650px;line-height:1.9;margin-top:8px}
+
+/* ---------- Cards ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-bottom:22px;box-shadow:var(--shadow-sm)}
+.card h2{font-size:20px;font-weight:700;letter-spacing:-.01em;color:var(--text);display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.card h2:before{content:"";display:inline-block;flex:none;width:5px;height:22px;border-radius:5px;background:var(--accent)}
+.section-title{font-size:15px;color:var(--accent);font-weight:700;margin:22px 0 12px;padding-top:18px;border-top:1px solid var(--border)}
+.hint{font-size:14px;color:var(--mute);line-height:1.8;margin-bottom:14px}
+
+/* ---------- Forms ---------- */
+.form-grid{display:grid;grid-template-columns:1fr;gap:11px}
+#addCard{padding:24px}
+#addCard .form-group label{margin-bottom:5px}
+#addCard .form-group input,#addCard .form-group select{min-height:42px;padding:9px 13px;font-size:15px}
+#addCard .form-group textarea{min-height:68px;padding:9px 13px;font-size:15px}
+.form-group{display:flex;flex-direction:column}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--dim);margin-bottom:7px}
+.form-group input,.form-group select,.form-group textarea,
+.search-bar input{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-input);
+  padding:12px 15px;color:var(--text);font-size:16px;font-family:inherit;outline:none;min-height:48px;width:100%;
+  transition:border-color .18s,box-shadow .18s,background .18s;
+}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus,
+.search-bar input:focus{
+  border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface);
+}
+.form-group textarea{min-height:92px;line-height:1.8;resize:vertical}
+.form-group select{cursor:pointer}
+
+/* ---------- Buttons ---------- */
+.btn-row{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 22px;min-height:46px;border:none;border-radius:var(--radius-sm);
+  font-size:16px;font-family:inherit;font-weight:700;letter-spacing:.01em;cursor:pointer;
+  transition:background .18s,transform .15s,box-shadow .18s,filter .18s;
+}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn-primary{background:var(--accent);color:var(--ink);box-shadow:0 6px 16px -8px rgba(0,0,0,.45)}
+.btn-primary:hover{background:var(--accent2);transform:translateY(-1px)}
+.btn-ok{background:var(--ok);color:#000}
+.btn-ok:hover{background:var(--ok2);transform:translateY(-1px)}
+.btn-del{background:var(--danger);color:#fff}
+.btn-del:hover{background:var(--danger2);transform:translateY(-1px)}
+.btn-warn{background:var(--warn);color:#000}
+.btn-warn:hover{background:var(--warn2);transform:translateY(-1px)}
+.btn-secondary{background:var(--chip);color:var(--dim);border:1px solid var(--chip2)}
+.btn-secondary:hover{background:var(--chip2);color:var(--text)}
+.btn-sm{padding:6px 13px;min-height:34px;font-size:14px;border-radius:9px}
+
+/* ---------- Search + stats ---------- */
+.search-bar{display:flex;gap:12px;margin-bottom:14px}
+.search-bar input{flex:1}
+.stats{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--mute);margin-bottom:12px}
+.stats:before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.empty-msg{text-align:center;padding:34px 20px;color:var(--mute);font-size:16px;border:1px dashed var(--border2);border-radius:14px;background:var(--surface2)}
+
+/* ---------- Table ---------- */
+#appView>.container>.card{overflow-x:auto}
+table{width:100%;border-collapse:separate;border-spacing:0 7px;margin-top:-7px}
+th{padding:13px 12px;text-align:start;color:var(--dim);font-size:13px;font-weight:700;letter-spacing:.02em;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:14px 12px;text-align:start;border-bottom:1px solid var(--border);font-size:15px;line-height:1.6;color:var(--text)}
+tbody tr{background:var(--surface2);transition:background .15s}
+tbody tr td:first-child{border-radius:0 12px 12px 0}
+tbody tr td:last-child{border-radius:12px 0 0 12px}
+tbody tr:hover{background:var(--hover)}
+
+/* ---------- Toast ---------- */
+.toast{
+  position:fixed;top:84px;left:50%;transform:translateX(-50%);
+  background:var(--ok);color:#000;padding:13px 22px;border-radius:12px;
+  font-size:16px;font-weight:600;z-index:3000;display:none;text-align:center;
+  box-shadow:0 12px 30px -10px rgba(0,0,0,.5);max-width:90vw;
+}
+.toast.error{background:var(--danger)}
+.toast.show{display:block;animation:fadeIn .28s}
+@keyframes fadeIn{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ---------- Modals ---------- */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(8,12,16,.62);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  z-index:2000;justify-content:center;align-items:center;padding:20px;overflow:auto;
+}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:30px;width:100%;max-width:580px;max-height:90vh;overflow:auto;box-shadow:var(--shadow)}
+.modal h2{display:flex;align-items:center;gap:10px;color:var(--text);font-size:20px;font-weight:700;margin-bottom:20px}
+.modal h2:before{content:"";flex:none;width:5px;height:20px;border-radius:5px;background:var(--accent)}
+.modal .form-grid{grid-template-columns:1fr 1fr}
+.modal .btn-row{justify-content:flex-end}
+
+/* ---------- Users / backups ---------- */
+.user-row{border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;background:var(--surface2);transition:border-color .18s}
+.user-row:hover{border-color:var(--border2)}
 .user-row-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.user-name{font-weight:700;color:var(--text);font-size:15px}
-.user-meta{font-size:12px;color:var(--mute);margin-top:3px}
+.user-name{font-weight:700;color:var(--text);font-size:16px}
+.user-meta{font-size:13px;color:var(--mute);margin-top:3px}
 .perm-list{display:flex;flex-wrap:wrap;gap:14px}
-.perm-item{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--dim);cursor:pointer;user-select:none}
+.perm-item{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--dim);cursor:pointer;user-select:none}
 .perm-item input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
 .perm-item input:disabled{opacity:.45;cursor:not-allowed}
-.section-title{font-size:14px;color:var(--accent);font-weight:700;margin:22px 0 12px;padding-top:18px;border-top:1px solid var(--border)}
-.bk-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--border);background:var(--surface2);border-radius:8px;padding:10px 12px;margin-bottom:8px;flex-wrap:wrap}
-.bk-name{font-size:13px;color:var(--text);font-weight:600}
-.bk-meta{font-size:11px;color:var(--mute);margin-top:2px}
-/* ---------- تحديث واجهة المستشفى ---------- */
-:root{
-  --bg:#0b1720;--surface:#12232d;--surface2:#0d1c25;--border:#203844;--border2:#315362;
-  --text:#edf7f5;--dim:#a8c1c3;--mute:#78969b;--accent:#5ee0c1;--accent2:#2dc5a4;--ink:#09221e;
-  --hover:#17313b;--chip:#193541;--chip2:#285061;--shadow:0 18px 44px rgba(0,0,0,.24);--shadow-sm:0 5px 18px rgba(0,0,0,.16);
+.bk-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--border);background:var(--surface2);border-radius:12px;padding:11px 14px;margin-bottom:8px;flex-wrap:wrap}
+.bk-name{font-size:14px;color:var(--text);font-weight:600}
+.bk-meta{font-size:12px;color:var(--mute);margin-top:2px}
+
+/* ---------- Print preview (single-page patient receipt) ---------- */
+#printArea{background:#fff;color:#000;padding:24px;border-radius:8px;margin-bottom:16px;direction:rtl}
+#printArea .ph-title{font-size:26px;font-weight:bold;text-align:center;margin-bottom:8px;color:#000}
+#printArea .ph-datetime{text-align:center;font-size:14px;line-height:1.8;margin:8px 0 14px;padding-bottom:12px;border-bottom:2px solid #000;color:#000}
+#printArea .ph-patient table{width:100%;border-collapse:collapse;page-break-inside:avoid;break-inside:avoid}
+#printArea .ph-patient th,#printArea .ph-patient td{padding:9px 12px;text-align:start;border:1px solid #222;font-size:15px;color:#000;line-height:1.45}
+#printArea .ph-patient th{background:#f3f3f3;font-weight:700;width:30%}
+#printArea .ph-footer{text-align:center;font-size:19px;font-weight:700;margin-top:18px;color:#000}
+@page{size:A4;margin:12mm}
+@media print{
+  html,body{background:#fff!important;padding:0!important;margin:0!important;width:100%!important;height:auto!important;overflow:visible!important}
+  body:before{display:none!important}
+  body *{visibility:hidden!important}
+  #printModal{display:block!important;position:static!important;inset:auto!important;visibility:visible!important;background:transparent!important;padding:0!important;margin:0!important;width:100%!important;height:auto!important;overflow:visible!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+  #printModal .modal{display:block!important;position:static!important;visibility:visible!important;border:none!important;border-radius:0!important;box-shadow:none!important;width:100%!important;max-width:none!important;max-height:none!important;overflow:visible!important;padding:0!important;margin:0!important;background:#fff!important}
+  #printModal .modal>*{visibility:hidden!important}
+  #printArea,#printArea *{visibility:visible!important}
+  #printArea{position:static!important;width:100%!important;max-width:100%!important;padding:0!important;margin:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;page-break-inside:avoid;break-inside:avoid}
+  #printArea .ph-title{font-size:24px}
+  #printArea .ph-patient th,#printArea .ph-patient td{padding:8px 10px;font-size:14px}
 }
-html[data-theme="light"]{
-  --bg:#f4f8fa;--surface:#ffffff;--surface2:#f8fbfc;--border:#d8e6ea;--border2:#b9d1d7;
-  --text:#18343b;--dim:#587078;--mute:#738c92;--accent:#087f72;--accent2:#05665b;--ink:#ffffff;
-  --hover:#eef8f6;--chip:#e5f1ef;--chip2:#cfe5e1;--shadow:0 18px 44px rgba(24,64,72,.10);--shadow-sm:0 5px 18px rgba(24,64,72,.07);
+
+/* ---------- Responsive ---------- */
+@media(max-width:700px){
+  body{padding:78px 14px 24px}
+  .topcontrols{padding:0 14px}
+  header{padding:23px 20px}
+  header h1{font-size:28px}
+  .card{padding:20px;border-radius:16px}
+  .topbar{align-items:flex-start}
+  .topbar-actions{width:100%}
+  .topbar-actions .btn-mini{flex:1}
+  .form-grid,.modal .form-grid{grid-template-columns:1fr}
+  .form-group.full{grid-column:auto}
+  .modal{padding:22px}
+  .seg-btn{padding:7px 10px}
+  .search-bar{flex-wrap:wrap}
+  .login-bar{flex-direction:column;align-items:stretch}
+  .login-btn{width:100%}
+  .login-card{padding:30px 22px}
 }
-body{font-family:"IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;background:var(--bg);padding:84px 24px 32px;letter-spacing:.01em}
-body:before{content:"";position:fixed;inset:0 0 auto;height:240px;pointer-events:none;background:linear-gradient(180deg,rgba(94,224,193,.08),transparent);z-index:-1}body{overflow-x:hidden}
-html[lang="en"] body{font-family:"Type Sense","Bodoni 72","Bodoni MT","Didot","Georgia",serif;letter-spacing:.005em}
-html[lang="en"] header h1,html[lang="en"] .brand-mini,html[lang="en"] .login-logo{font-family:"Type Sense","Bodoni 72","Bodoni MT","Didot","Georgia",serif;font-weight:700;letter-spacing:-.025em}
-html[lang="en"] input,html[lang="en"] select,html[lang="en"] textarea,html[lang="en"] button{font-family:inherit}
-.container{max-width:1120px}
-.topcontrols{height:64px;padding:0 max(24px,calc((100vw - 1120px)/2));background:rgba(18,35,45,.94);border-bottom:1px solid var(--border2);box-shadow:0 8px 26px rgba(0,0,0,.16)}
-html[data-theme="light"] .topcontrols{background:rgba(255,255,255,.94)}
-.brand-mini{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:17px;letter-spacing:0;font-weight:400}
-.seg{border-radius:11px;padding:3px;background:var(--chip);border-color:var(--border2)}
-.seg-btn{border-radius:8px;padding:7px 14px;font-size:12px}
-.ctl-btn{border-radius:10px;width:38px;height:38px}
-header{padding:28px 30px 26px;margin-bottom:24px;text-align:start;border:1px solid var(--border);border-radius:20px;background:var(--surface);box-shadow:var(--shadow-sm)}
-header h1{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:34px;letter-spacing:0;color:var(--accent);line-height:1.45;font-weight:400;text-shadow:0 1px 0 rgba(255,255,255,.45)}
-header p{font-size:14px;max-width:650px;line-height:1.9}
-.card{border-radius:20px;padding:28px;margin-bottom:22px;box-shadow:var(--shadow)}
-.card h2{font-size:19px;letter-spacing:-.02em;color:var(--text);display:flex;align-items:center;gap:10px}
-.card h2:before{content:"";display:inline-block;width:5px;height:22px;border-radius:5px;background:var(--accent)}
-.form-grid{gap:18px}
-.form-group label{font-size:12px;font-weight:700;letter-spacing:.02em}
-.form-group input,.form-group select,.form-group textarea,.search-bar input,.login-field input{min-height:48px;border-radius:12px;padding:12px 15px;background:var(--surface2);border-color:var(--border2);transition:border-color .2s,box-shadow .2s,background .2s}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus,.search-bar input:focus,.login-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(94,224,193,.13);background:var(--surface)}
-.form-group textarea{min-height:90px;line-height:1.8}
-.btn{border-radius:11px;min-height:46px;padding:11px 21px;letter-spacing:.01em}
-.btn-primary{background:var(--accent);box-shadow:0 6px 14px rgba(45,197,164,.18)}
-.btn-primary:hover{background:var(--accent2);transform:translateY(-1px)}
-.btn-secondary,.btn-mini{border-radius:11px}
-.topbar{border-radius:16px;padding:12px 16px;margin-bottom:22px}
-.topbar-user{font-size:13px}
-.role-badge{padding:5px 10px}
-.search-bar{gap:12px}
-.search-bar input{min-height:48px}
-table{border-spacing:0 7px;border-collapse:separate;margin-top:-7px}
-th{padding:13px 12px;border-bottom:1px solid var(--border);font-size:12px;white-space:nowrap}
-td{padding:14px 12px;border-bottom:1px solid var(--border);line-height:1.6}
-tbody tr{background:var(--surface2)}
-tbody tr td:first-child{border-radius:0 10px 10px 0}
-tbody tr td:last-child{border-radius:10px 0 0 10px}
-tbody tr:hover{background:var(--hover)}
-#appView>.container>.card{overflow-x:auto}
-.login-card{border-radius:22px;padding:40px 34px;box-shadow:var(--shadow)}
-.login-logo{font-size:30px;letter-spacing:-.04em}
-.login-btn{border-radius:11px;background:var(--accent);box-shadow:0 7px 18px rgba(45,197,164,.2)}
-.modal{border-radius:20px;box-shadow:var(--shadow);padding:30px}
-.toast{border-radius:12px;padding:13px 20px}
-@media(max-width:700px){body{padding:76px 14px 24px}.topcontrols{padding:0 14px}header{padding:23px 20px}header h1{font-size:26px}.card{padding:20px;border-radius:16px}.topbar{align-items:flex-start}.topbar-actions{width:100%}.topbar-actions .btn-mini{flex:1}.form-grid{grid-template-columns:1fr}.form-group.full{grid-column:auto}}
 </style>
 </head>
 <body>
 
 <!-- ============ شريط اللغة والثيم ============ -->
 <div class="topcontrols">
-  <div class="brand-mini" id="brandMini" data-i18n="brand">مستشفى الخيري</div>
+  <div class="brand-mini" id="brandMini" data-i18n="brand">مستشفى الشيخ برير الشيخ الصديق</div>
   <div class="ctl-group">
     <div class="seg">
       <button class="seg-btn active" id="langAr" onclick="setLang('ar')">عربي</button>
       <button class="seg-btn" id="langEn" onclick="setLang('en')">EN</button>
     </div>
-    <button class="ctl-btn" id="themeBtn" onclick="toggleTheme()" data-i18n-title="theme_tip">🌙</button>
+    <button class="ctl-btn" id="themeBtn" onclick="toggleTheme()" data-i18n-title="theme_tip"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
   </div>
 </div>
 
 <!-- ================= شاشة تسجيل الدخول ================= -->
 <div id="loginView">
   <div class="login-card">
-    <div class="login-logo" data-i18n="brand">مستشفى الخيري</div>
+    <div class="login-logo" data-i18n="brand">مستشفى الشيخ برير الشيخ الصديق</div>
     <p class="login-sub" data-i18n="brand_sub">نظام تسجيل بيانات المرضى</p>
-    <div class="login-field">
-      <label data-i18n="username">اسم المستخدم</label>
-      <input type="text" id="loginUser" autocomplete="username" data-i18n-ph="ph_username">
+    <div class="login-bar">
+      <div class="login-field">
+        <label data-i18n="username">اسم المستخدم</label>
+        <input type="text" id="loginUser" autocomplete="username" data-i18n-ph="ph_username">
+      </div>
+      <div class="login-field">
+        <label data-i18n="password">كلمة المرور</label>
+        <div class="pw-wrap">
+          <input type="password" id="loginPass" autocomplete="current-password" data-i18n-ph="ph_password">
+          <button type="button" class="pw-eye" id="pwEye" onclick="togglePw()" data-i18n-title="pw_show"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+      </div>
+      <button class="login-btn" id="loginBtn" onclick="doLogin()"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg><span data-i18n="login">دخول</span></button>
     </div>
-    <div class="login-field">
-      <label data-i18n="password">كلمة المرور</label>
-      <input type="password" id="loginPass" autocomplete="current-password" data-i18n-ph="ph_password">
-    </div>
-    <button class="login-btn" id="loginBtn" onclick="doLogin()" data-i18n="login">دخول</button>
     <div class="login-error" id="loginError"></div>
-    <div class="login-hint" data-i18n="hint_login">الدخول متاح للمستخدمين المصرح لهم فقط</div>
   </div>
 </div>
 
@@ -768,23 +877,24 @@ tbody tr:hover{background:var(--hover)}
 
   <div class="topbar">
     <div class="topbar-user">
-      <span>👤</span>
+      <span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
       <span id="topUserName">-</span>
       <span id="topUserRole" class="role-badge role-user">-</span>
       <span class="last-edit" id="lastEdit"></span>
     </div>
     <div class="topbar-actions">
-      <button class="btn-mini" id="btnUsers" onclick="openUsers()" style="display:none" data-i18n="btn_users">إدارة المستخدمين</button>
-      <button class="btn-mini" id="btnBackup" onclick="openBackup()" style="display:none" data-i18n="btn_backup">النسخ الاحتياطي</button>
-      <button class="btn-mini" id="btnPass" onclick="openPass()" style="display:none" data-i18n="btn_pass">كلمة المرور</button>
-      <button class="btn-mini btn-logout" onclick="doLogout()" data-i18n="btn_logout">تسجيل الخروج</button>
+      <button class="btn-mini" id="btnUsers" onclick="openUsers()" style="display:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="btn_users">إدارة المستخدمين</span></button>
+      <button class="btn-mini" id="btnBackup" onclick="openBackup()" style="display:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg><span data-i18n="btn_backup">النسخ الاحتياطي</span></button>
+      <button class="btn-mini" id="btnPass" onclick="openPass()" style="display:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span data-i18n="btn_pass">كلمة المرور</span></button>
+      <button class="btn-mini btn-logout" onclick="doLogout()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span data-i18n="btn_logout">تسجيل الخروج</span></button>
     </div>
   </div>
 
-  <header><h1 data-i18n="brand">مستشفى الخيري</h1><p data-i18n="header_sub">أدخل بيانات المريض وسيتم حفظها تلقائياً — يمكنك البحث والرجوع لها في أي وقت</p></header>
+  <header><h1 data-i18n="brand">مستشفى الشيخ برير الشيخ الصديق</h1><p data-i18n="header_sub">أدخل بيانات المريض وسيتم حفظها تلقائياً — يمكنك البحث والرجوع لها في أي وقت</p></header>
 
   <div class="card" id="addCard"><h2 data-i18n="card_add">تسجيل مريض جديد</h2>
     <div class="form-grid">
+      <div class="form-group"><label data-i18n="ticket_number">رقم التذكرة</label><input type="text" id="ticketNumber" readonly></div>
       <div class="form-group"><label data-i18n="lbl_name">الاسم *</label><input type="text" id="name" data-i18n-ph="ph_name"></div>
       <div class="form-group"><label data-i18n="lbl_age">العمر</label><input type="number" id="age" min="0" max="150" data-i18n-ph="ph_age"></div>
       <div class="form-group"><label data-i18n="lbl_gender">الجنس</label>
@@ -794,24 +904,26 @@ tbody tr:hover{background:var(--hover)}
           <option value="أنثى" data-i18n="female"></option>
         </select>
       </div>
-      <div class="form-group full"><label data-i18n="lbl_complaint">الشكوى</label><textarea id="complaint" data-i18n-ph="ph_complaint"></textarea></div>
+      <div class="form-group"><label data-i18n="lbl_complaint">الشكوى</label><textarea id="complaint" data-i18n-ph="ph_complaint"></textarea></div>
+      <div class="form-group"><label data-i18n="lbl_payment_method">طريقة الدفع</label><select id="paymentMethod"><option value="" data-i18n="choose"></option><option value="cash" data-i18n="payment_cash">كاش</option><option value="transfer" data-i18n="payment_transfer">تحويل</option></select></div>
+      <div class="form-group"><label data-i18n="lbl_amount">المبلغ</label><input type="number" id="amount" min="0" step="0.01" inputmode="decimal" data-i18n-ph="ph_amount"></div>
     </div>
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="addPatient()" data-i18n="btn_register">تسجيل</button>
-      <button class="btn btn-ok" onclick="printForm()" data-i18n="btn_print">طباعة</button>
-      <button class="btn btn-secondary" onclick="clearForm()" data-i18n="btn_clear">مسح الحقول</button>
+      <button class="btn btn-primary" onclick="registerAndPrint()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span data-i18n="btn_register_print">تسجيل وطباعة</span></button>
+      <button class="btn btn-secondary" onclick="clearForm()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg><span data-i18n="btn_clear">مسح الحقول</span></button>
     </div>
   </div>
 
   <div class="card"><h2 data-i18n="card_list">المرضى المسجلين</h2>
     <div class="search-bar">
       <input type="text" id="searchInput" data-i18n-ph="ph_search" oninput="searchPatients()">
-      <button class="btn btn-secondary" id="btnExport" onclick="exportCsv()" style="display:none;white-space:nowrap" data-i18n="btn_export">تصدير CSV</button>
+      <button class="btn btn-secondary" id="btnExport" onclick="exportCsv()" style="display:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg><span data-i18n="btn_export">تصدير CSV</span></button>
     </div>
     <div class="stats" id="stats"></div>
     <table><thead><tr>
       <th>#</th><th data-i18n="th_name">الاسم</th><th data-i18n="th_age">العمر</th>
       <th data-i18n="th_gender">الجنس</th><th data-i18n="th_complaint">الشكوى</th>
+      <th data-i18n="lbl_payment_method">طريقة الدفع</th><th data-i18n="lbl_amount">المبلغ</th>
       <th data-i18n="th_date">التاريخ</th><th data-i18n="th_actions">إجراءات</th>
     </tr></thead><tbody id="patientTable"></tbody></table>
     <div class="empty-msg" id="emptyMsg" style="display:none" data-i18n="empty_none"></div>
@@ -833,8 +945,10 @@ tbody tr:hover{background:var(--hover)}
       </select>
     </div>
     <div class="form-group full"><label data-i18n="lbl_complaint">الشكوى</label><textarea id="editComplaint"></textarea></div>
+    <div class="form-group"><label data-i18n="lbl_payment_method">طريقة الدفع</label><select id="editPaymentMethod"><option value="" data-i18n="choose"></option><option value="cash" data-i18n="payment_cash">كاش</option><option value="transfer" data-i18n="payment_transfer">تحويل</option></select></div>
+    <div class="form-group"><label data-i18n="lbl_amount">المبلغ</label><input type="number" id="editAmount" min="0" step="0.01" inputmode="decimal"></div>
   </div>
-  <div class="btn-row"><button class="btn btn-primary" onclick="saveEdit()" data-i18n="save_edit">حفظ التعديل</button><button class="btn btn-secondary" onclick="closeModal()" data-i18n="cancel">إلغاء</button></div>
+  <div class="btn-row"><button class="btn btn-primary" onclick="saveEdit()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="save_edit">حفظ التعديل</span></button><button class="btn btn-secondary" onclick="closeModal()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg><span data-i18n="cancel">إلغاء</span></button></div>
 </div></div>
 
 <!-- معاينة الطباعة -->
@@ -842,8 +956,8 @@ tbody tr:hover{background:var(--hover)}
   <h2 data-i18n="print_preview">معاينة الطباعة</h2>
   <div id="printArea"></div>
   <div class="btn-row" style="justify-content:center">
-    <button class="btn btn-primary" onclick="doPrint()" data-i18n="print_now">طباعة الآن</button>
-    <button class="btn btn-secondary" onclick="closePrint()" data-i18n="close">إغلاق</button>
+    <button class="btn btn-primary" onclick="doPrint()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span data-i18n="print_now">طباعة الآن</span></button>
+    <button class="btn btn-secondary" onclick="closePrint()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg><span data-i18n="close">إغلاق</span></button>
   </div>
 </div></div>
 
@@ -858,18 +972,19 @@ tbody tr:hover{background:var(--hover)}
     <div class="form-group full"><label data-i18n="password">كلمة المرور</label><input type="password" id="newPassword" autocomplete="new-password" data-i18n-ph="ph_password_new"></div>
   </div>
   <div style="margin-top:14px">
-    <label style="font-size:13px;color:var(--dim);display:block;margin-bottom:8px" data-i18n="perms">الصلاحيات</label>
+    <label style="font-size:14px;color:var(--dim);display:block;margin-bottom:8px" data-i18n="perms">الصلاحيات</label>
     <div class="perm-list" id="newPerms">
       <label class="perm-item"><input type="checkbox" data-perm="view" checked> <span data-i18n="p_view">عرض</span></label>
       <label class="perm-item"><input type="checkbox" data-perm="add"> <span data-i18n="p_add">تسجيل</span></label>
       <label class="perm-item"><input type="checkbox" data-perm="edit"> <span data-i18n="p_edit">تعديل</span></label>
       <label class="perm-item"><input type="checkbox" data-perm="delete"> <span data-i18n="p_delete">حذف</span></label>
       <label class="perm-item"><input type="checkbox" data-perm="print"> <span data-i18n="p_print">طباعة</span></label>
+      <label class="perm-item"><input type="checkbox" data-perm="lab"> <span data-i18n="p_lab">مجال المختبر</span></label>
     </div>
   </div>
   <div class="btn-row">
-    <button class="btn btn-primary" onclick="addUser()" data-i18n="btn_add_user">إضافة المستخدم</button>
-    <button class="btn btn-secondary" onclick="closeUsers()" data-i18n="close">إغلاق</button>
+    <button class="btn btn-primary" onclick="addUser()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M19 8v6"/><path d="M22 11h-6"/></svg><span data-i18n="btn_add_user">إضافة المستخدم</span></button>
+    <button class="btn btn-secondary" onclick="closeUsers()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg><span data-i18n="close">إغلاق</span></button>
   </div>
 </div></div>
 
@@ -878,10 +993,10 @@ tbody tr:hover{background:var(--hover)}
   <h2 data-i18n="backup_title">النسخ الاحتياطي</h2>
   <p class="hint" data-i18n="backup_hint"></p>
   <div class="btn-row" style="justify-content:flex-start;margin-top:0">
-    <button class="btn btn-primary btn-sm" onclick="createBackup()" data-i18n="backup_create">إنشاء نسخة الآن</button>
+    <button class="btn btn-primary btn-sm" onclick="createBackup()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span data-i18n="backup_create">إنشاء نسخة الآن</span></button>
   </div>
   <div id="backupList" style="margin-top:16px"></div>
-  <div class="btn-row"><button class="btn btn-secondary" onclick="closeBackup()" data-i18n="close">إغلاق</button></div>
+  <div class="btn-row"><button class="btn btn-secondary" onclick="closeBackup()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg><span data-i18n="close">إغلاق</span></button></div>
 </div></div>
 
 <!-- تغيير كلمة المرور -->
@@ -891,28 +1006,50 @@ tbody tr:hover{background:var(--hover)}
   <div class="form-group" style="margin-bottom:12px"><label data-i18n="pass_new">كلمة المرور الجديدة</label><input type="password" id="passNew" autocomplete="new-password"></div>
   <div class="form-group"><label data-i18n="pass_confirm">تأكيد كلمة المرور</label><input type="password" id="passConf" autocomplete="new-password"></div>
   <div class="btn-row">
-    <button class="btn btn-primary" onclick="savePassword()" data-i18n="save">حفظ</button>
-    <button class="btn btn-secondary" onclick="closePass()" data-i18n="cancel">إلغاء</button>
+    <button class="btn btn-primary" onclick="savePassword()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg><span data-i18n="save">حفظ</span></button>
+    <button class="btn btn-secondary" onclick="closePass()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg><span data-i18n="cancel">إلغاء</span></button>
   </div>
 </div></div>
 
 <div class="toast" id="toast"></div>
 
 <script>
+/* ==================== الأيقونات (SVG) ==================== */
+const ICON={
+ moon:'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+ login:'<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/>',
+ eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+ eyeOff:'<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-6.5 0-10-7-10-7a18.4 18.4 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/><path d="M1 1l22 22"/>',
+ pencil:'<path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>',
+ trash:'<path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/>',
+ printer:'<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
+ restore:'<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>'
+};
+function sv(n,s){s=s||16;return '<svg viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICON[n]||'')+'</svg>';}
+function togglePw(){
+  const i=document.getElementById('loginPass');
+  const b=document.getElementById('pwEye');
+  const show=i.type==='password';
+  i.type=show?'text':'password';
+  b.innerHTML=sv(show?'eyeOff':'eye',16);
+  b.title=t(show?'pw_hide':'pw_show');
+  b.setAttribute('aria-pressed',show?'true':'false');
+}
 /* ==================== الترجمة / i18n ==================== */
 const I18N={
 ar:{
- brand:"مستشفى الخيري",brand_sub:"نظام تسجيل بيانات المرضى",
+ brand:"مستشفى الشيخ برير الشيخ الصديق",brand_sub:"نظام تسجيل بيانات المرضى",
  username:"اسم المستخدم",password:"كلمة المرور",
  ph_username:"اسم المستخدم",ph_password:"كلمة المرور",
- login:"دخول",logging_in:"جارٍ الدخول...",hint_login:"الدخول متاح للمستخدمين المصرح لهم فقط",
+ login:"دخول",logging_in:"جارٍ الدخول...",pw_show:"إظهار كلمة المرور",pw_hide:"إخفاء كلمة المرور",
  role_admin:"مدير",role_user:"مستخدم",
  btn_users:"إدارة المستخدمين",btn_backup:"النسخ الاحتياطي",btn_pass:"كلمة المرور",btn_logout:"تسجيل الخروج",
  btn_export:"تصدير CSV",header_sub:"أدخل بيانات المريض وسيتم حفظها تلقائياً — يمكنك البحث والرجوع لها في أي وقت",
  card_add:"تسجيل مريض جديد",lbl_name:"الاسم *",ph_name:"اسم المريض",lbl_age:"العمر",ph_age:"العمر بالسنوات",
  lbl_gender:"الجنس",choose:"-- اختر --",male:"ذكر",female:"أنثى",
- lbl_complaint:"الشكوى",ph_complaint:"اكتب الشكوى / الأعراض",
- btn_register:"تسجيل",btn_print:"طباعة",btn_clear:"مسح الحقول",
+ lbl_complaint:"الشكوى",ph_complaint:"اكتب الشكوى / الأعراض",ticket_number:"رقم التذكرة",time_label:"الوقت",print_footer:"وَإِذَا مَرِضْتُ فَهُوَ يَشْفِينِ",lbl_payment_method:"طريقة الدفع",payment_cash:"كاش",payment_transfer:"تحويل",lbl_amount:"المبلغ",ph_amount:"أدخل المبلغ بالأرقام",
+ btn_register:"تسجيل",btn_print:"طباعة",btn_register_print:"تسجيل وطباعة",btn_clear:"مسح الحقول",
  card_list:"المرضى المسجلين",ph_search:"ابحث بالاسم أو العمر أو الجنس أو الشكوى...",
  stats:"عدد المرضى: {n}",th_name:"الاسم",th_age:"العمر",th_gender:"الجنس",th_complaint:"الشكوى",th_date:"التاريخ",th_actions:"إجراءات",
  empty_none:"لا توجد بيانات مسجلة بعد",view_only:"عرض فقط",edit:"تعديل",del:"حذف",print:"طباعة",
@@ -925,6 +1062,11 @@ ar:{
  backup_title:"النسخ الاحتياطي",
  backup_hint:"يتم إنشاء نسخة احتياطية تلقائياً كل يوم مع كل حفظ، ويُحتفظ بآخر 30 نسخة. النسخ مشفّرة في مجلد backups.",
  backup_create:"إنشاء نسخة الآن",backup_none:"لا توجد نسخ احتياطية بعد",restore:"استعادة",size:"الحجم",
+    lab_title:"مجال المختبر",lab_intro:"المحتوى متاح فقط للمستخدمين المصرح لهم — سجل دخولك أو اطلب الصلاحية من المدير",
+    lab_need_access:"أنت لست مرخصًا بدخول المختبر",lab_request_tip:"اطلب الصلاحية من المدير",
+    lab_denied:"عذراً، لا تملك صلاحية الدخول إلى مجال المختبر",
+    lab_load:"جارٍ التحميل…",lab_empty:"لا توجد محتويات في مختبر المختبر بعد",
+    lab_access_granted:"تم منحك صلاحية المختبر",
  pass_title:"تغيير كلمة المرور",pass_current:"كلمة المرور الحالية",pass_new:"كلمة المرور الجديدة",pass_confirm:"تأكيد كلمة المرور",
  last_edit:"آخر تعديل: ",theme_tip:"تبديل الوضع الليلي/النهاري",
  toast_saved:"تم حفظ بيانات المريض",toast_deleted:"تم حذف بيانات المريض",toast_updated:"تم تحديث البيانات",
@@ -942,21 +1084,22 @@ ar:{
  e_inactive:"هذا الحساب موقوف — راجع المدير",e_user_exists:"اسم المستخدم موجود بالفعل",
  e_password_short:"كلمة المرور 6 أحرف على الأقل",e_username_required:"اسم المستخدم مطلوب",
  e_admin_locked:"لا يمكن تعديل أو حذف حساب المدير",e_need_name:"اكتب الاسم أولاً للطباعة",
+ e_no_lab_access:"ليس لديك الصلاحية لدخول مختبر المختبر",
  e_bad_pass:"كلمة المرور الحالية غير صحيحة",e_pass_mismatch:"كلمتا المرور غير متطابقتين",
  e_conn:"تعذّر الاتصال بالبرنامج"
 },
 en:{
- brand:"Al-Khairi Hospital",brand_sub:"Patient Records System",
+ brand:"Alsheikh Berair Hospital",brand_sub:"Patient Records System",
  username:"Username",password:"Password",
  ph_username:"Username",ph_password:"Password",
- login:"Sign in",logging_in:"Signing in...",hint_login:"Access is limited to authorized users only",
+ login:"Sign in",logging_in:"Signing in...",pw_show:"Show password",pw_hide:"Hide password",
  role_admin:"Admin",role_user:"User",
  btn_users:"Users",btn_backup:"Backups",btn_pass:"Password",btn_logout:"Sign out",
  btn_export:"Export CSV",header_sub:"Enter patient details — they are saved automatically and can be searched any time",
  card_add:"New patient",lbl_name:"Name *",ph_name:"Patient name",lbl_age:"Age",ph_age:"Age in years",
  lbl_gender:"Gender",choose:"-- Select --",male:"Male",female:"Female",
- lbl_complaint:"Complaint",ph_complaint:"Write the complaint / symptoms",
- btn_register:"Save",btn_print:"Print",btn_clear:"Clear fields",
+ lbl_complaint:"Complaint",ph_complaint:"Write the complaint / symptoms",ticket_number:"Ticket number",time_label:"Time",print_footer:"And when I am ill, it is He who cures me",lbl_payment_method:"Payment method",payment_cash:"Cash",payment_transfer:"Transfer",lbl_amount:"Amount",ph_amount:"Enter amount",
+ btn_register:"Save",btn_print:"Print",btn_register_print:"Save & print",btn_clear:"Clear fields",
  card_list:"Registered patients",ph_search:"Search by name, age, gender or complaint...",
  stats:"Patients: {n}",th_name:"Name",th_age:"Age",th_gender:"Gender",th_complaint:"Complaint",th_date:"Date",th_actions:"Actions",
  empty_none:"No records yet",view_only:"View only",edit:"Edit",del:"Delete",print:"Print",
@@ -980,7 +1123,7 @@ en:{
  confirm_restore:"Restore this backup? Current data will be replaced.",
  warn_restored:"The data file was modified outside the app — the latest backup was restored.",
  warn_tampered:"The data file is corrupted or was modified outside the app. Use a backup to restore.",
- e_generic:"Something went wrong",e_login_required:"Please sign in",e_admin_only:"Admins only",
+ e_generic:"Something went wrong",e_login_required:"Please sign in",e_admin_only:"Admins only",e_no_lab_access:"You do not have permission to enter the Lab",
  e_perm_denied:"You do not have permission for this action",e_name_required:"Name is required",
  e_not_found:"Not found",e_bad_credentials:"Wrong username or password",
  e_inactive:"This account is disabled — contact the admin",e_user_exists:"Username already exists",
@@ -1005,12 +1148,13 @@ function genderLabel(v){
   if(v==='أنثى'||s==='female')return t('female');
   return v;
 }
+function paymentLabel(v){return v==='cash'?t('payment_cash'):(v==='transfer'?t('payment_transfer'):(v||''));}
 
 /* ==================== المظهر واللغة ==================== */
 function applyTheme(){
   document.documentElement.setAttribute('data-theme',THEME);
   const b=document.getElementById('themeBtn');
-  if(b) b.textContent=(THEME==='dark')?'☀️':'🌙';
+  if(b) b.innerHTML=sv(THEME==='dark'?'sun':'moon',18);
 }
 function applyI18n(){
   document.documentElement.lang=LANG;
@@ -1057,7 +1201,10 @@ function showLogin(){
   ME=null;
   document.getElementById('appView').classList.remove('show');
   document.getElementById('loginView').classList.add('show');
-  document.getElementById('loginPass').value='';
+  const pi=document.getElementById('loginPass');
+  pi.value='';pi.type='password';
+  const pe=document.getElementById('pwEye');
+  if(pe){pe.innerHTML=sv('eye',16);pe.setAttribute('aria-pressed','false');}
 }
 function showApp(){
   document.getElementById('loginView').classList.remove('show');
@@ -1070,7 +1217,7 @@ async function doLogin(){
   const btn=document.getElementById('loginBtn');
   err.textContent='';
   if(!u||!p){err.textContent=t('e_login_required');return;}
-  btn.disabled=true;btn.textContent=t('logging_in');
+  btn.disabled=true;btn.innerHTML=sv('login',16)+'<span data-i18n="logging_in">'+t('logging_in')+'</span>';
   try{
     const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
     const j=await r.json();
@@ -1085,7 +1232,7 @@ async function doLogin(){
   }catch(e){
     err.textContent=t('e_conn');
   }finally{
-    btn.disabled=false;btn.textContent=t('login');
+    btn.disabled=false;btn.innerHTML=sv('login',16)+'<span data-i18n="login">'+t('login')+'</span>';
   }
 }
 async function doLogout(){
@@ -1097,17 +1244,79 @@ async function doLogout(){
 /* ==================== الصلاحيات ==================== */
 function can(p){return !!(ME&&ME.perms&&ME.perms[p]);}
 function isAdmin(){return !!(ME&&ME.role==='admin');}
+/* تعيين عرض عنصر بأمان - ما ينهار لو العنصر غير موجود */
+function setDisp(id,val){const e=document.getElementById(id);if(e)e.style.display=val;}
+
 function applyPermissions(){
   if(!ME)return;
-  document.getElementById('topUserName').textContent=ME.name||ME.username;
+  const u=document.getElementById('topUserName');
+  if(u)u.textContent=ME.name||ME.username;
   const badge=document.getElementById('topUserRole');
-  if(isAdmin()){badge.textContent=t('role_admin');badge.className='role-badge role-admin';}
-  else{badge.textContent=t('role_user');badge.className='role-badge role-user';}
-  document.getElementById('btnUsers').style.display=isAdmin()?'inline-block':'none';
-  document.getElementById('btnBackup').style.display=isAdmin()?'inline-block':'none';
-  document.getElementById('btnPass').style.display='inline-block';
-  document.getElementById('btnExport').style.display=isAdmin()?'inline-block':'none';
-  document.getElementById('addCard').style.display=can('add')?'block':'none';
+  if(badge){
+    if(isAdmin()){badge.textContent=t('role_admin');badge.className='role-badge role-admin';}
+    else{badge.textContent=t('role_user');badge.className='role-badge role-user';}
+  }
+  setDisp('btnUsers',isAdmin()?'inline-flex':'none');
+  setDisp('btnBackup',isAdmin()?'inline-flex':'none');
+  setDisp('btnPass','inline-flex');
+  setDisp('btnExport',isAdmin()?'inline-flex':'none');
+  setDisp('addCard',can('add')?'block':'none');
+  const showLab=!!(ME.perms&&ME.perms['lab'])&&!!document.getElementById('labPage');
+  setDisp('btnLab',showLab?'inline-flex':'none');
+  setDisp('labAccess',showLab?'block':'none');
+  setDisp('labDenied',showLab?'none':'block');
+  setDisp('labPage',showLab?'block':'none');
+  if(showLab){document.getElementById('labContent').innerHTML='';applyLab();}
+}
+
+/* ==================== مختبر المختبر ==================== */
+function applyLab(){
+  if(!ME||!ME.perms||!ME.perms['lab']){closeLab();return;}
+  const labPageEl=document.getElementById('labPage');
+  const cl=document.getElementById('labContent');
+  if(!labPageEl||!cl)return;
+  labPageEl.style.display='block';
+  cl.innerHTML='<p>'+esc(t('lab_load'))+'<span id="labLoading"></span></p>';
+  api('/api/lab')
+    .then(function(j){
+      if(j&&j.allowed){
+        const items=j.content||[];
+        if(items.length){
+          cl.innerHTML=items.map(function(x){
+            return '<div class="lab-item" style="border:1px solid var(--border2);border-radius:12px;padding:18px;margin:12px 0;background:var(--surface2);break-inside:avoid"><div style="font-weight:700;color:var(--text);margin-bottom:8px">'+esc(x.name)+'</div><pre style="font-size:14px;color:var(--text);background:var(--surface);padding:14px;border-radius:8px;overflow:auto;white-space:pre-wrap" dir="auto">'+esc(x.content)+'</pre></div>';
+          }).join('');
+          const ll=document.getElementById('labLoading');
+          if(ll)ll.textContent='';
+        }else{
+          cl.innerHTML='<p data-i18n="lab_empty">لا توجد محتويات في مختبر المختبر بعد.</p>';
+        }
+      }else{
+        closeLab();
+        showToast(errMsg(j),true);
+      }
+    })
+    .catch(function(){closeLab();showToast(t('e_conn'),true);});
+}
+function closeLab(){
+  setDisp('labPage','none');
+  setDisp('labAccess','block');
+  setDisp('labGate','block');
+  setDisp('labDenied','none');
+}
+function openLabRequest(){
+  if(!ME)return;
+  const room=document.getElementById('labRequestRoom');
+  const rid=room.value.trim()||('lab-'+Date.now());
+  room.value='';
+  api('/api/lab',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request:{roomId:rid,status:'requested'}})})
+    .then(function(j){
+      if(j&&j.granted){closeLab();showToast(t('lab_access_granted'),true);}
+      else showToast(errMsg(j),true);
+    })
+    .catch(function(){showToast(t('e_conn'),true);});
+}
+function renderLabAccess(){
+  if(!ME||!ME.perms||!ME.perms['lab']){closeLab();}
 }
 
 /* ==================== آخر تعديل ==================== */
@@ -1134,6 +1343,7 @@ async function loadPatients(){
   try{
     const j=await api('/api/patients');
     allPatients=j.data||[];
+    document.getElementById('ticketNumber').value=j.next_ticket_number||'';
     viewPatients=allPatients;
     renderTable(viewPatients);
     if(j.last_edit){LAST_EDIT=j.last_edit;renderLastEdit();}
@@ -1141,18 +1351,24 @@ async function loadPatients(){
     else if(j.warning==='tampered')showToast(t('warn_tampered'),true);
   }catch(e){}
 }
-async function addPatient(){
+async function registerAndPrint(){
   const n=document.getElementById('name').value.trim();
   const a=document.getElementById('age').value.trim();
   const g=document.getElementById('gender').value;
   const c=document.getElementById('complaint').value.trim();
+  const pm=document.getElementById('paymentMethod').value;
+  const amount=document.getElementById('amount').value.trim();
   if(!n){showToast(t('e_name_required'),true);return;}
   try{
-    const j=await api('/api/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,age:a,gender:g,complaint:c})});
+    const j=await api('/api/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,age:a,gender:g,complaint:c,payment_method:pm,amount:amount})});
     if(j.status==='ok'){
-      showToast(t('toast_saved'));clearForm();
+      showToast(t('toast_saved'));
       if(j.last_edit){LAST_EDIT=j.last_edit;renderLastEdit();}
       loadPatients();
+      buildPrintCard(j.data||{name:n,age:a,gender:g,complaint:c,payment_method:pm,amount:amount,date:''});
+      document.getElementById('printModal').classList.add('show');
+      setTimeout(function(){window.print();},150);
+      clearForm();
     }else showToast(errMsg(j),true);
   }catch(e){}
 }
@@ -1176,11 +1392,11 @@ function renderTable(p){
   st.textContent=tf('stats',{n:p.length});
   tb.innerHTML=p.map(function(x){
     let acts='';
-    if(can('edit'))acts+='<button class="btn btn-sm btn-warn" onclick="openEdit('+x.id+')">'+esc(t('edit'))+'</button> ';
-    if(can('delete'))acts+='<button class="btn btn-sm btn-del" onclick="del('+x.id+')">'+esc(t('del'))+'</button> ';
-    if(can('print'))acts+='<button class="btn btn-sm btn-ok" onclick="printPatient('+x.id+')">'+esc(t('print'))+'</button>';
-    if(!acts)acts='<span style="color:var(--mute);font-size:12px">'+esc(t('view_only'))+'</span>';
-    return '<tr><td>'+x.id+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.age)+'</td><td>'+esc(genderLabel(x.gender))+'</td><td>'+esc(x.complaint)+'</td><td style="font-size:12px;color:var(--mute)" dir="ltr">'+esc(x.date)+'</td><td>'+acts+'</td></tr>';
+    if(can('edit'))acts+='<button class="btn btn-sm btn-warn" onclick="openEdit('+x.id+')">'+sv('pencil',14)+esc(t('edit'))+'</button> ';
+    if(can('delete'))acts+='<button class="btn btn-sm btn-del" onclick="del('+x.id+')">'+sv('trash',14)+esc(t('del'))+'</button> ';
+    if(can('print'))acts+='<button class="btn btn-sm btn-ok" onclick="printPatient('+x.id+')">'+sv('printer',14)+esc(t('print'))+'</button>';
+    if(!acts)acts='<span style="color:var(--mute);font-size:13px">'+esc(t('view_only'))+'</span>';
+    return '<tr><td>'+esc(x.ticket_no||x.id)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.age)+'</td><td>'+esc(genderLabel(x.gender))+'</td><td>'+esc(x.complaint||'')+'</td><td>'+esc(paymentLabel(x.payment_method))+'</td><td>'+esc(x.amount||'')+'</td><td style="font-size:13px;color:var(--mute)" dir="ltr">'+esc(x.date)+'</td><td>'+acts+'</td></tr>';
   }).join('');
 }
 async function del(id){
@@ -1198,7 +1414,9 @@ function openEdit(id){
   document.getElementById('editName').value=p.name;
   document.getElementById('editAge').value=p.age;
   document.getElementById('editGender').value=p.gender;
-  document.getElementById('editComplaint').value=p.complaint;
+  document.getElementById('editComplaint').value=p.complaint||'';
+  document.getElementById('editPaymentMethod').value=p.payment_method||'';
+  document.getElementById('editAmount').value=p.amount||'';
   document.getElementById('editModal').classList.add('show');
 }
 async function saveEdit(){
@@ -1210,7 +1428,9 @@ async function saveEdit(){
       name:n,
       age:document.getElementById('editAge').value.trim(),
       gender:document.getElementById('editGender').value,
-      complaint:document.getElementById('editComplaint').value.trim()
+      complaint:document.getElementById('editComplaint').value.trim(),
+      payment_method:document.getElementById('editPaymentMethod').value,
+      amount:document.getElementById('editAmount').value.trim()
     })});
     if(j.status==='ok'){showToast(t('toast_updated'));closeModal();if(j.last_edit){LAST_EDIT=j.last_edit;renderLastEdit();}loadPatients();}
     else showToast(errMsg(j),true);
@@ -1222,21 +1442,30 @@ function clearForm(){
   document.getElementById('age').value='';
   document.getElementById('gender').value='';
   document.getElementById('complaint').value='';
+  document.getElementById('paymentMethod').value='';
+  document.getElementById('amount').value='';
 }
 
 /* ==================== الطباعة ==================== */
 function buildPrintCard(p){
   const pa=document.getElementById('printArea');
   pa.setAttribute('dir',LANG==='ar'?'rtl':'ltr');
+  const now=new Date();
+  const dateText=now.toLocaleDateString(LANG==='ar'?'ar':'en-GB');
+  const timeText=now.toLocaleTimeString(LANG==='ar'?'ar':'en-GB',{hour:'2-digit',minute:'2-digit'});
   pa.innerHTML=
-    '<div class="ph-title">'+esc(t('brand'))+'</div><div class="ph-sub">'+esc(t('paper_sub'))+'</div>'+
+    '<div class="ph-title">'+esc(t('brand'))+'</div>'+ 
+    '<div class="ph-datetime"><div>'+esc(t('th_date'))+': '+esc(dateText)+'</div><div>'+esc(t('time_label'))+': '+esc(timeText)+'</div></div>'+
     '<div class="ph-patient"><table>'+
+    '<tr><th>'+esc(t('ticket_number'))+'</th><td>'+esc(p.ticket_no||p.id||'')+'</td></tr>'+  
     '<tr><th>'+esc(t('lbl_name').replace(' *',''))+'</th><td>'+esc(p.name)+'</td></tr>'+
     '<tr><th>'+esc(t('lbl_age'))+'</th><td>'+esc(p.age)+'</td></tr>'+
     '<tr><th>'+esc(t('lbl_gender'))+'</th><td>'+esc(genderLabel(p.gender))+'</td></tr>'+
-    '<tr><th>'+esc(t('lbl_complaint'))+'</th><td>'+esc(p.complaint)+'</td></tr>'+
-    '<tr><th>'+esc(t('th_date'))+'</th><td dir="ltr">'+esc(p.date)+'</td></tr>'+
-    '</table></div>';
+    '<tr><th>'+esc(t('lbl_complaint'))+'</th><td>'+esc(p.complaint||'')+'</td></tr>'+ 
+    '<tr><th>'+esc(t('lbl_payment_method'))+'</th><td>'+esc(paymentLabel(p.payment_method))+'</td></tr>'+ 
+    '<tr><th>'+esc(t('lbl_amount'))+'</th><td>'+esc(p.amount||'')+'</td></tr>'+
+    '</table></div>'+
+    '<div class="ph-footer">{ '+esc(t('print_footer'))+' }</div>';
 }
 function printPatient(id){
   const p=allPatients.find(function(x){return x.id===id;});
@@ -1254,6 +1483,8 @@ function printForm(){
     age:document.getElementById('age').value.trim(),
     gender:document.getElementById('gender').value,
     complaint:document.getElementById('complaint').value.trim(),
+    payment_method:document.getElementById('paymentMethod').value,
+    amount:document.getElementById('amount').value.trim(),
     date:d
   });
   document.getElementById('printModal').classList.add('show');
@@ -1286,7 +1517,7 @@ function renderUsers(){
     }).join('');
     const isSelf=(u.username===ME.username);
     const badge=(u.role==='admin')?'<span class="role-badge role-admin" style="margin-inline-start:6px">'+esc(t('role_admin'))+'</span>':'';
-    const delBtn=isSelf?'<span class="user-meta">'+esc(t('you'))+'</span>':'<button class="btn btn-sm btn-del" onclick="deleteUser(&quot;'+esc(u.username)+'&quot;)">'+esc(t('del'))+'</button>';
+    const delBtn=isSelf?'<span class="user-meta">'+esc(t('you'))+'</span>':'<button class="btn btn-sm btn-del" onclick="deleteUser(&quot;'+esc(u.username)+'&quot;)">'+sv('trash',14)+esc(t('del'))+'</button>';
     return '<div class="user-row">'+
       '<div class="user-row-head">'+
         '<div><div class="user-name">'+esc(u.name)+badge+'</div>'+
@@ -1357,7 +1588,7 @@ function renderBackups(){
     const kb=Math.max(1,Math.round(b.size/1024));
     return '<div class="bk-row"><div><div class="bk-name">'+esc(b.name)+'</div>'+
       '<div class="bk-meta">'+esc(b.time)+' · '+esc(t('size'))+' '+kb+' KB</div></div>'+
-      '<button class="btn btn-sm btn-warn" onclick="restoreBackup(&quot;'+esc(b.name)+'&quot;)">'+esc(t('restore'))+'</button></div>';
+      '<button class="btn btn-sm btn-warn" onclick="restoreBackup(&quot;'+esc(b.name)+'&quot;)">'+sv('restore',14)+esc(t('restore'))+'</button></div>';
   }).join('');
 }
 async function createBackup(){
@@ -1505,6 +1736,11 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
 
+        if path == "/api/ping":
+            # فحص صحة بسيط - يُستخدم لمنع تشغيل نسختين في نفس الوقت
+            self._json({"status": "ok", "app": APP_TAG, "pid": os.getpid()})
+            return
+
         if path == "/api/settings":
             self._json({"status": "ok", "settings": load_settings()})
             return
@@ -1522,6 +1758,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             patients = load_patients()
             self._json({"status": "ok", "data": patients, "count": len(patients),
+                        "next_ticket_number": peek_next_ticket_number(patients),
                         "warning": DATA_STATUS["warning"],
                         "last_edit": load_settings().get("last_edit", "")})
             return
@@ -1545,6 +1782,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/users":
             if not self.guard(admin=True):
                 return
+            for u in load_users():
+                u["perms"]["lab"] = bool(u.get("perms", {}).get("lab"))
             self._json({"status": "ok", "data": [public_user(u) for u in load_users()]})
             return
 
@@ -1558,15 +1797,54 @@ class Handler(BaseHTTPRequestHandler):
             if not self.guard(admin=True):
                 return
             lang = parse_qs(parsed.query).get("lang", ["ar"])[0]
-            headers = (["#", "Name", "Age", "Gender", "Complaint", "Date"] if lang == "en"
-                       else ["#", "الاسم", "العمر", "الجنس", "الشكوى", "التاريخ"])
+            headers = (["Ticket number", "Name", "Age", "Gender", "Complaint", "Payment method", "Amount", "Date"] if lang == "en"
+                       else ["رقم التذكرة", "الاسم", "العمر", "الجنس", "الشكوى", "طريقة الدفع", "المبلغ", "التاريخ"])
             lines = [",".join('"%s"' % h for h in headers)]
             for p in load_patients():
                 g = p.get("gender", "")
                 if lang == "en":
                     g = "Male" if g == "ذكر" else ("Female" if g == "أنثى" else g)
-                row = [str(p.get("id", "")), p.get("name", ""), p.get("age", ""),
-                       g, p.get("complaint", ""), p.get("date", "")]
+                payment = p.get("payment_method", "")
+                if lang == "en":
+                    payment = "Cash" if payment == "cash" else ("Transfer" if payment == "transfer" else payment)
+                row = [str(p.get("ticket_no", p.get("id", ""))), p.get("name", ""), p.get("age", ""),
+                       g, p.get("complaint", ""), payment, p.get("amount", ""), p.get("date", "")]
+                lines.append(",".join('"%s"' % str(c).replace('"', '""') for c in row))
+            body = ("\ufeff" + "\r\n".join(lines)).encode("utf-8")
+            fname = "patients_%s.csv" % datetime.now().strftime("%Y%m%d_%H%M")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Content-Disposition", 'attachment; filename="%s"' % fname)
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        if path == "/api/users":
+            if not self.guard(admin=True):
+                return
+            for u in load_users():
+                u["perms"]["lab"] = bool(u.get("perms", {}).get("lab"))
+            self._json({"status": "ok", "data": [public_user(u) for u in load_users()]})
+            return
+
+        if path == "/api/export.csv":
+            if not self.guard(admin=True):
+                return
+            lang = parse_qs(parsed.query).get("lang", ["ar"])[0]
+            headers = (["Ticket number", "Name", "Age", "Gender", "Complaint", "Payment method", "Amount", "Date"] if lang == "en"
+                       else ["رقم التذكرة", "الاسم", "العمر", "الجنس", "الشكوى", "طريقة الدفع", "المبلغ", "التاريخ"])
+            lines = [",".join('"%s"' % h for h in headers)]
+            for p in load_patients():
+                g = p.get("gender", "")
+                if lang == "en":
+                    g = "Male" if g == "ذكر" else ("Female" if g == "أنثى" else g)
+                payment = p.get("payment_method", "")
+                if lang == "en":
+                    payment = "Cash" if payment == "cash" else ("Transfer" if payment == "transfer" else payment)
+                row = [str(p.get("ticket_no", p.get("id", ""))), p.get("name", ""), p.get("age", ""),
+                       g, p.get("complaint", ""), payment, p.get("amount", ""), p.get("date", "")]
                 lines.append(",".join('"%s"' % str(c).replace('"', '""') for c in row))
             body = ("\ufeff" + "\r\n".join(lines)).encode("utf-8")
             fname = "patients_%s.csv" % datetime.now().strftime("%Y%m%d_%H%M")
@@ -1588,6 +1866,15 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/login":
             self.handle_login()
+            return
+
+        if path == "/api/reset-sessions":
+            # local-only: called when the exe is launched again while already running
+            if self.headers.get("X-Local-Reset") == "1" and self.client_address[0] in ("127.0.0.1", "::1"):
+                SESSIONS.clear()
+                self._json({"status": "ok"}, 200, [("Set-Cookie", "session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax")])
+            else:
+                self._err("forbidden", "forbidden", 403)
             return
 
         if path == "/api/logout":
@@ -1643,10 +1930,13 @@ class Handler(BaseHTTPRequestHandler):
             patients = load_patients()
             patient = {
                 "id": next_id(patients),
+                "ticket_no": allocate_ticket_number(patients),
                 "name": name,
                 "age": str(body.get("age", "")).strip(),
                 "gender": str(body.get("gender", "")).strip(),
                 "complaint": str(body.get("complaint", "")).strip(),
+                "payment_method": str(body.get("payment_method", "")).strip(),
+                "amount": str(body.get("amount", "")).strip(),
                 "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
             }
             patients.append(patient)
@@ -1691,7 +1981,9 @@ class Handler(BaseHTTPRequestHandler):
                     p["name"] = str(body.get("name", p["name"])).strip()
                     p["age"] = str(body.get("age", p["age"])).strip()
                     p["gender"] = str(body.get("gender", p["gender"])).strip()
-                    p["complaint"] = str(body.get("complaint", p["complaint"])).strip()
+                    p["complaint"] = str(body.get("complaint", p.get("complaint", ""))).strip()
+                    p["payment_method"] = str(body.get("payment_method", p.get("payment_method", ""))).strip()
+                    p["amount"] = str(body.get("amount", p.get("amount", ""))).strip()
                     found = True
                     break
             if not found:
@@ -1737,6 +2029,31 @@ class Handler(BaseHTTPRequestHandler):
             save_patients(data)
             touch_last_edit()
             self._json({"status": "ok", "message": "تمت الاستعادة", "count": len(data)})
+            return
+
+        # ---------- Lab page: content available only to users with the lab permission ----------
+        if path == "/api/lab":
+            if not self.guard(admin=True):
+                return
+            body = self._read_body() or {}
+            token = self._session_token()
+            user = self.current_user()
+            req = body.get("request") or {}
+            rid = str(req.get("roomId", "")).strip()
+            status = req.get("status", "")
+            if rid and status == "granted":
+                if user and user.get("role") == "admin":
+                    lab_requests = load_requests()
+                    if rid in lab_requests:
+                        del lab_requests[rid]
+                        save_requests(lab_requests)
+                    self._json({"status": "ok", "granted": True})
+                    return
+            if user and user.get("perms", {}).get("lab"):
+                self._json({"status": "ok", "allowed": True,
+                            "content": load_lab_content()})
+                return
+            self._json({"status": "denied", "message": t("e_no_lab_access")}, 403)
             return
 
         if path == "/api/users":
@@ -1856,7 +2173,7 @@ class Handler(BaseHTTPRequestHandler):
         self._json(
             {"status": "ok", "user": public_user(user)},
             200,
-            [("Set-Cookie", f"session={token}; Path=/; Max-Age=604800; HttpOnly; SameSite=Lax")],
+            [("Set-Cookie", f"session={token}; Path=/; HttpOnly; SameSite=Lax")],
         )
 
 
@@ -1883,6 +2200,48 @@ def _port_is_free(port):
             pass
 
 
+class QuietThreadingHTTPServer(ThreadingHTTPServer):
+    """
+    نفس ThreadingHTTPServer لكنه لا يطبع Traceback عندما يقطع المتصفح الاتصال
+    (WinError 10053 / 10054) - وهو أمر طبيعي وليس خطأ.
+    """
+
+    daemon_threads = True
+    allow_reuse_address = False
+
+    def handle_error(self, request, client_address):
+        exc = sys.exc_info()[1]
+        if isinstance(exc, (
+            ConnectionAbortedError,
+            ConnectionResetError,
+            BrokenPipeError,
+            TimeoutError,
+        )):
+            return
+        # أخطاء الشبكة المعتادة على ويندوز
+        if isinstance(exc, OSError) and getattr(exc, "winerror", None) in (
+            10053, 10054, 10038, 10058,
+        ):
+            return
+        super().handle_error(request, client_address)
+
+
+def _probe_app(port, timeout=0.6):
+    """
+    يتحقق إن كان المنفذ يخدم نسخة شغّالة من نفس البرنامج.
+    يرجع True لو النسخة موجودة وتعمل.
+    """
+    import urllib.request
+    try:
+        with urllib.request.urlopen(
+            "http://127.0.0.1:%d/api/ping" % port, timeout=timeout
+        ) as r:
+            data = json.loads(r.read().decode("utf-8", "replace"))
+        return isinstance(data, dict) and data.get("app") == APP_TAG
+    except Exception:
+        return False
+
+
 def _pick_server(preferred):
     """يختار منفذاً متاحاً - مهم عند نقل البرنامج لجهاز فيه برنامج على نفس المنفذ"""
     last_err = None
@@ -1892,7 +2251,7 @@ def _pick_server(preferred):
             if not _port_is_free(p):
                 last_err = OSError("port %d is already in use" % p)
                 continue
-            srv = ThreadingHTTPServer(("127.0.0.1", p), Handler)
+            srv = QuietThreadingHTTPServer(("127.0.0.1", p), Handler)
             return srv, p
         except OSError as e:
             last_err = e
@@ -1906,6 +2265,33 @@ def _pick_server(preferred):
 
 def main():
     global ACTIVE_PORT
+
+    # منع تشغيل نسختين في نفس الوقت:
+    # لو في نسخة شغّالة أصلاً على نفس المنفذ، نفتح المتصفح عليها ونخرج بهدوء.
+    if _probe_app(PORT):
+        msg = [
+            "=" * 58,
+            "  BADAWI PROJECT  |  النسخة تعمل بالفعل",
+            "  العنوان / URL  : http://localhost:%d" % PORT,
+            "=" * 58,
+        ]
+        if sys.stdout is not None:
+            try:
+                for _line in msg:
+                    print(_line)
+                sys.stdout.flush()
+            except Exception:
+                pass
+        # force the login page: clear any session left from the previous run
+        try:
+            import urllib.request
+            _rq = urllib.request.Request("http://127.0.0.1:%d/api/reset-sessions" % PORT, data=b"{}", method="POST", headers={"X-Local-Reset": "1", "Content-Type": "application/json"})
+            urllib.request.urlopen(_rq, timeout=2).read()
+        except Exception:
+            pass
+        if not _OPTS.get("no_browser"):
+            webbrowser.open(f"http://localhost:{PORT}")
+        return 0
 
     seeded = seed_data_files()
     ensure_admin()
@@ -1924,7 +2310,7 @@ def main():
 
     banner = [
         "=" * 58,
-        "  BADAWI PROJECT  |  مستشفى الخيري - Al-Khairi Hospital",
+        "  BADAWI PROJECT  |  مستشفى الشيخ برير الشيخ الصديق - Alsheikh Berair Hospital",
         "  العنوان / URL  : http://localhost:%d" % ACTIVE_PORT,
         "  مجلد البيانات  : %s" % APP_DIR,
     ]
@@ -1954,6 +2340,84 @@ def main():
         server.serve_forever()
     except KeyboardInterrupt:
         server.shutdown()
+
+
+# ---------- Lab page content (admin-only API, plain text reports) ----------
+
+def ensure_requests_file():
+    path = os.path.join(APP_DIR, "lab_requests.json")
+    if not os.path.exists(path):
+        _atomic_write(path, json.dumps({}, ensure_ascii=False, indent=2))
+    return path
+
+
+def load_requests():
+    ensure_requests_file()
+    try:
+        data = _read_json(load_requests.path)
+        if not isinstance(data, dict):
+            return {}
+        return data
+    except Exception:
+        return {}
+
+
+load_requests.path = ensure_requests_file()
+
+
+def save_requests(reqs):
+    _atomic_write(load_requests.path, json.dumps(reqs, ensure_ascii=False, indent=2))
+
+
+LAP_DIR = os.path.join(APP_DIR, "lab")
+
+
+def ensure_lab_dir():
+    os.makedirs(LAP_DIR, exist_ok=True)
+    try:
+        _prune("lab_", 8)
+    except Exception:
+        pass
+
+
+def load_lab_content():
+    """يقرأ ملفات المحتوى السليمة من مجلد lab/ (مملوكة للمدير فقط)"""
+    ensure_lab_dir()
+    items = []
+    try:
+        files = sorted(os.listdir(LAP_DIR))
+    except OSError:
+        return items
+    for fn in files:
+        if not fn.endswith(".lab"):
+            continue
+        p = os.path.join(LAP_DIR, fn)
+        try:
+            raw = open(p, encoding="utf-8").read()
+        except Exception:
+            continue
+        items.append({"name": fn, "content": raw})
+    return items
+
+
+def add_lab_content(name, content):
+    ensure_lab_dir()
+    if not name.lower().endswith(".lab"):
+        name = name + ".lab"
+    p = os.path.join(LAP_DIR, name)
+    _atomic_write(p, content)
+    return name
+
+
+def delete_lab_content(name):
+    ensure_lab_dir()
+    if not name.lower().endswith(".lab"):
+        name = name + ".lab"
+    p = os.path.join(LAP_DIR, name)
+    if os.path.exists(p):
+        os.remove(p)
+        return True
+    return False
 
 
 if __name__ == "__main__":
