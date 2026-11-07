@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>صيدلية بدوي — المخزون والمشتريات</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lalezar&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+try{var _p=JSON.parse(localStorage.getItem('ph_prefs')||'{}');
+ if(_p.theme==='light'||_p.theme==='dark')document.documentElement.setAttribute('data-theme',_p.theme);
+ if(_p.lang==='en'||_p.lang==='ar'){document.documentElement.lang=_p.lang;document.documentElement.dir=(_p.lang==='ar'?'rtl':'ltr');}
+}catch(e){}
+</script>
+<link rel="stylesheet" href="/assets/pharmacy.css">
+</head>
+<body data-page="inventory">
+<div id="phChrome"></div>
+<div id="loginView"></div>
+<div id="phModals"></div>
+
+<div id="pageView" class="container" hidden>
+  <header>
+    <h1 data-i18n="inv_title">📦 المخزون والمشتريات</h1>
+    <p data-i18n="inv_sub">إدخال الأدوية المشتراة بالباركود، تعديل المخزون، منح الصلاحيات وإعدادات النظام — التعديل للمدير فقط.</p>
+  </header>
+
+  <div class="alert-banner show" id="lockedBanner" style="display:none" data-i18n="locked_msg">
+    🔒 هذا القسم للمدير فقط — لا يمكنك التعديل أو منح الصلاحيات.
+  </div>
+
+  <!-- 1) إدخال المشتريات -->
+  <section class="card" id="entryCard">
+    <h2 data-i18n="entry_title">➕ إدخال عملية شراء / دواء جديد</h2>
+    <p class="hint" data-i18n="entry_hint">امسح الباركود ← تُرجمته تظهر أدناه ← اكتب اسم الدواء وسعر الشراء وسعر البيع والكمية.</p>
+    <div class="form-group" style="margin-bottom:12px">
+      <label data-i18n="inv_barcode_label">باركود الدواء</label>
+      <input type="text" id="invBarcode" class="barcode-input" autocomplete="off"
+             data-i18n-ph="inv_barcode_ph" placeholder="امسح الباركود هنا…">
+    </div>
+    <div class="btn-row" style="margin-top:0;margin-bottom:14px">
+      <button class="btn btn-secondary" id="decodeBtn" data-i18n="decode_btn">ترجمة الباركود</button>
+      <button class="btn btn-secondary" id="invCameraBtn" data-i18n="camera_btn">📷 مسح بالكاميرا</button>
+    </div>
+    <div class="decode-box" id="invDecodeBox" hidden></div>
+    <div class="form-grid three">
+      <div class="form-group"><label data-i18n="drug_name">اسم الدواء</label><input id="fName" autocomplete="off"></div>
+      <div class="form-group"><label data-i18n="cost_price">سعر الشراء</label><input id="fCost" type="number" min="0" step="0.01" value="0"></div>
+      <div class="form-group"><label data-i18n="sell_price">سعر البيع</label><input id="fSell" type="number" min="0" step="0.01" value="0"></div>
+      <div class="form-group"><label data-i18n="qty_bought">الكمية المشتراة (عبوات)</label><input id="fQty" type="number" min="1" step="1" value="1"></div>
+      <div class="form-group"><label data-i18n="expiry">تاريخ الصلاحية</label><input id="fExpiry" type="date"></div>
+      <div class="form-group"><label data-i18n="supplier">المورد</label><input id="fSupplier" autocomplete="off"></div>
+      <div class="form-group"><label data-i18n="note">ملاحظة</label><input id="fNote" autocomplete="off"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ok" id="savePurchase" data-i18n="save_purchase">💾 حفظ الشراء وتحديث المخزون</button>
+      <button class="btn btn-secondary" id="resetPurchase" data-i18n="reset_btn">تفريغ الحقول</button>
+    </div>
+  </section>
+
+  <!-- 2) المخزون الحالي -->
+  <section class="card" id="stockCard">
+    <h2 data-i18n="stock_title">📋 المخزون الحالي</h2>
+    <div class="search-bar">
+      <input type="text" id="stockSearch" data-i18n-ph="stock_search" placeholder="بحث بالاسم أو الباركود…">
+    </div>
+    <div class="empty-msg" id="stockEmpty" data-i18n="no_data">لا توجد بيانات</div>
+    <table id="stockTable" hidden>
+      <thead><tr>
+        <th data-i18n="th_barcode">الباركود</th><th data-i18n="drug_name">الدواء</th>
+        <th data-i18n="th_sell">سعر البيع</th><th data-i18n="th_cost">سعر الشراء</th>
+        <th data-i18n="th_qty">الكمية</th><th data-i18n="th_expiry">الصلاحية</th>
+        <th data-i18n="supplier">المورد</th><th data-i18n="th_status">الحالة</th>
+        <th data-i18n="th_edit">تعديل</th>
+      </tr></thead>
+      <tbody id="stockBody"></tbody>
+    </table>
+  </section>
+
+  <!-- 3) المستخدمون والصلاحيات -->
+  <section class="card" id="usersCard">
+    <h2 data-i18n="users_title">👥 المستخدمون والصلاحيات</h2>
+    <p class="hint" data-i18n="users_hint">أنت فقط من يستطيع إنشاء المستخدمين ومنح الصلاحيات أو سحبها.</p>
+    <div id="usersList"></div>
+    <div class="section-title" data-i18n="add_user_btn">إضافة مستخدم</div>
+    <div class="form-grid three">
+      <div class="form-group"><label data-i18n="new_user">اسم المستخدم (إنجليزي)</label><input id="nuUser" autocomplete="off"></div>
+      <div class="form-group"><label data-i18n="new_name">الاسم الظاهر</label><input id="nuName" autocomplete="off"></div>
+      <div class="form-group"><label data-i18n="new_pass">كلمة المرور (8+)</label><input id="nuPass" type="password" autocomplete="new-password"></div>
+    </div>
+    <div style="margin:14px 0">
+      <label class="muted" data-i18n="new_perms">الصلاحيات الممنوحة</label>
+      <div class="perm-list" id="nuPerms" style="margin-top:8px"></div>
+    </div>
+    <div class="btn-row"><button class="btn btn-primary" id="addUserBtn" data-i18n="add_user_btn">إضافة مستخدم</button></div>
+  </section>
+
+  <!-- 4) الإعدادات والنسخ الاحتياطي -->
+  <section class="card" id="settingsCard">
+    <h2 data-i18n="settings_title">⚙️ إعدادات الصيدلية</h2>
+    <div class="form-grid three">
+      <div class="form-group"><label data-i18n="pharmacy_name_lbl">اسم الصيدلية (على الإيصال)</label><input id="sName"></div>
+      <div class="form-group"><label data-i18n="pharmacy_sub_lbl">العنوان / السطر الثاني</label><input id="sSub"></div>
+      <div class="form-group"><label data-i18n="currency_lbl">العملة</label><input id="sCur"></div>
+      <div class="form-group"><label data-i18n="vat_lbl">ضريبة القيمة المضافة %</label><input id="sVat" type="number" min="0" max="100" step="0.5"></div>
+      <div class="form-group"><label data-i18n="low_stock_lbl">حد التنبيه (عبوات)</label><input id="sLow" type="number" min="1" step="1"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="saveSettings" data-i18n="save_settings">حفظ الإعدادات</button>
+      <button class="btn btn-secondary" id="backupBtn" data-i18n="backup_btn">💽 نسخة احتياطية مشفّرة</button>
+    </div>
+    <div class="section-title" data-i18n="backups_title">النسخ الاحتياطية</div>
+    <div id="backupsList"></div>
+  </section>
+</div>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/inventory.js"></script>
+</body>
+</html>

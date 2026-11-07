@@ -27,6 +27,10 @@ users.json
 settings.json
 lab_requests.json
 
+# ---- Pharmacy data (encrypted business data: never commit) ----
+pharmacy/data/
+pharmacy/settings.json
+
 # ---- OS / editor ----
 Thumbs.db
 desktop.ini

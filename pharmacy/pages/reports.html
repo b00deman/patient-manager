@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>صيدلية بدوي — التقارير</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lalezar&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+try{var _p=JSON.parse(localStorage.getItem('ph_prefs')||'{}');
+ if(_p.theme==='light'||_p.theme==='dark')document.documentElement.setAttribute('data-theme',_p.theme);
+ if(_p.lang==='en'||_p.lang==='ar'){document.documentElement.lang=_p.lang;document.documentElement.dir=(_p.lang==='ar'?'rtl':'ltr');}
+}catch(e){}
+</script>
+<link rel="stylesheet" href="/assets/pharmacy.css">
+</head>
+<body data-page="reports">
+<div id="phChrome"></div>
+<div id="loginView"></div>
+<div id="phModals"></div>
+
+<div id="pageView" class="container" hidden>
+  <header>
+    <h1 data-i18n="rep_title">📊 التقارير وكل البيانات</h1>
+    <p data-i18n="rep_sub">كل المبيعات والمشتريات والمخزون وسجل التغييرات — مع إجماليات وفلاتر بالتاريخ.</p>
+  </header>
+
+  <div class="alert-banner show" id="repLocked" style="display:none" data-i18n="rep_locked">
+    🔒 التقارير تحتاج صلاحية من المدير.
+  </div>
+
+  <div id="repContent">
+    <div class="stats-row">
+      <div class="stat"><div class="k" data-i18n="stat_sales">إجمالي المبيعات</div><div class="v" id="stSales">0.00</div></div>
+      <div class="stat"><div class="k" data-i18n="stat_purchases">إجمالي المشتريات</div><div class="v" id="stPurch">0.00</div></div>
+      <div class="stat"><div class="k" data-i18n="stat_profit">هامش الربح التقديري</div><div class="v" id="stProfit">0.00</div></div>
+      <div class="stat"><div class="k" data-i18n="stat_invoices">عدد الفواتير</div><div class="v" id="stCount">0</div></div>
+    </div>
+
+    <section class="card">
+      <div class="filters">
+        <div class="form-group"><label data-i18n="from_date">من تاريخ</label><input type="date" id="dateFrom"></div>
+        <div class="form-group"><label data-i18n="to_date">إلى تاريخ</label><input type="date" id="dateTo"></div>
+        <button class="btn btn-primary" id="applyFilter" data-i18n="apply_btn">تطبيق</button>
+        <button class="btn btn-secondary" id="exportCsv" data-i18n="export_csv">⬇️ تصدير CSV (نص عادي)</button>
+      </div>
+      <p class="hint" style="margin-bottom:12px">⚠️ ملف CSV المُصدَّر <b>نص عادي غير مشفّر</b> — لا تتركه على جهاز عام. البيانات الأصلية تبقى مشفّرة دائماً.</p>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="sales" data-i18n="tab_sales">المبيعات</button>
+        <button class="tab-btn" data-tab="purchases" data-i18n="tab_purchases">المشتريات</button>
+        <button class="tab-btn" data-tab="stock" data-i18n="tab_stock">المخزون</button>
+        <button class="tab-btn" data-tab="audit" data-i18n="tab_audit">سجل التدقيق</button>
+      </div>
+      <div id="auditState" style="margin-bottom:12px"></div>
+      <div class="empty-msg" id="repEmpty" hidden data-i18n="no_data">لا توجد بيانات</div>
+      <table id="repTable" hidden><thead id="repHead"></thead><tbody id="repBody"></tbody></table>
+    </section>
+  </div>
+</div>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/reports.js"></script>
+</body>
+</html>

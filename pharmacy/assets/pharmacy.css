@@ -1,0 +1,342 @@
+/* ============================================================
+   BADAWI PHARMACY — نفس نظام ألوان وخطوط واجهة المستشفى
+   ============================================================ */
+:root{
+  color-scheme:dark;
+  --bg:#0d1319;--surface:#161e26;--surface2:#111921;--border:#263440;--border2:#384a59;
+  --text:#F6FBFF;--dim:#D6ECFF;--mute:#9FB8CC;
+  --accent:#F6FBFF;--accent2:#D6ECFF;--ink:#171F27;--accent-soft:rgba(214,236,255,.14);
+  --hover:#1c2833;--chip:#1e2b37;--chip2:#2d3f4e;
+  --shadow:0 1px 2px rgba(0,0,0,.22),0 20px 48px -20px rgba(0,0,0,.55);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.18),0 8px 20px -12px rgba(0,0,0,.40);
+  --danger:#f2685f;--danger2:#df4d44;--warn:#f5a524;--warn2:#df8d0f;--ok:#4fc26b;--ok2:#3ba757;
+  --logout-bg:#3a2320;--logout-fg:#ff9d94;--logout-bg2:#4a2e2a;--logout-fg2:#ffb5ab;
+  --radius:18px;--radius-sm:11px;--radius-input:12px;
+}
+html[data-theme="light"]{
+  color-scheme:light;
+  --bg:#F3F4F4;--surface:#FFFFFF;--surface2:#F7F8F8;--border:#D6D8D7;--border2:#A8A8A8;
+  --text:#383838;--dim:#707070;--mute:#8B8C84;
+  --accent:#383838;--accent2:#707070;--ink:#F6FBFF;--accent-soft:rgba(56,56,56,.10);
+  --hover:#E9EAEA;--chip:#E7E8E8;--chip2:#C9CBC9;
+  --shadow:0 1px 2px rgba(30,35,38,.07),0 20px 46px -20px rgba(30,35,38,.28);
+  --shadow-sm:0 1px 2px rgba(30,35,38,.05),0 8px 20px -12px rgba(30,35,38,.16);
+  --danger:#d94f45;--danger2:#b93a31;--warn:#e07f10;--warn2:#c66a08;--ok:#2f8f46;--ok2:#227136;
+  --logout-bg:#fdecea;--logout-fg:#c0392b;--logout-bg2:#f9dcd8;--logout-fg2:#a93226;
+}
+*{margin:0;padding:0;box-sizing:border-box;scrollbar-width:thin;scrollbar-color:var(--chip2) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--chip2);border-radius:10px;border:2px solid transparent;background-clip:padding-box}
+::selection{background:var(--accent);color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg{flex:none}
+body{
+  font-family:"IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  padding:190px 24px 40px;letter-spacing:.01em;
+  transition:background .25s,color .25s;overflow-x:hidden;
+}
+body:before{content:"";position:fixed;inset:0 0 auto;height:260px;pointer-events:none;
+  background:linear-gradient(180deg,var(--accent-soft),transparent);z-index:-1}
+html[lang="en"] body{font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;letter-spacing:0}
+html[lang="en"] header h1,html[lang="en"] .brand-mini,html[lang="en"] .login-logo,
+html[lang="en"] input,html[lang="en"] select,html[lang="en"] textarea,html[lang="en"] button{font-family:inherit}
+input:-webkit-autofill{-webkit-box-shadow:0 0 0 1000px var(--surface2) inset;-webkit-text-fill-color:var(--text)}
+.container{max-width:1180px;margin:0 auto}
+[hidden]{display:none!important}
+
+/* ---------- الشريط العلوي (نفس المستشفى) ---------- */
+.topcontrols{position:fixed;top:0;left:0;right:0;height:170px;display:flex;
+  align-items:flex-end!important;justify-content:flex-end;gap:12px;padding:0;overflow:hidden;
+  background:linear-gradient(to bottom,rgba(13,19,25,.86) 55%,rgba(13,19,25,0) 100%);
+  z-index:1500;direction:rtl}
+html[data-theme="light"] .topcontrols{background:linear-gradient(to bottom,rgba(255,255,255,.86) 55%,rgba(255,255,255,0) 100%)}
+.brand-mini{position:absolute;inset:0;z-index:0;display:flex;align-items:center;justify-content:space-between;
+  background:#ebe8e2;overflow:hidden;line-height:0;
+  -webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent 100%);
+  mask-image:linear-gradient(to bottom,#000 55%,transparent 100%)}
+.bm-l{height:100%;width:300px;object-fit:cover;object-position:center 25%;flex:0 0 auto;display:block}
+.bm-r{height:100%;width:240px;object-fit:cover;object-position:center 15%;flex:0 0 auto;display:block;margin-inline-end:200px}
+.bm-n{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:auto;width:min(44vw,640px);display:block;z-index:1;pointer-events:none}
+.ctl-group{display:flex;align-items:center;gap:8px;position:relative;z-index:2;margin:0 24px 12px}
+.seg{display:flex;gap:2px;background:var(--chip);border:1px solid var(--border2);border-radius:11px;padding:3px}
+.seg-btn{background:transparent;border:none;color:var(--dim);min-width:74px;text-align:center;padding:7px 14px;
+  font-size:13px;font-family:inherit;cursor:pointer;font-weight:700;border-radius:8px;transition:background .18s,color .18s}
+.seg-btn:hover{color:var(--text)}
+.seg-btn.active{background:var(--accent);color:var(--ink);box-shadow:0 2px 8px -3px rgba(0,0,0,.45)}
+.ctl-btn{background:var(--chip);border:1px solid var(--border2);color:var(--text);width:38px;height:38px;
+  border-radius:10px;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;
+  justify-content:center;transition:background .18s,transform .18s}
+.ctl-btn:hover{background:var(--chip2);transform:translateY(-1px)}
+
+/* ---------- شريط المستخدم + التنقل بين الصفحات الثلاث ---------- */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--surface);
+  border:1px solid var(--border);border-radius:16px;padding:12px 16px;margin-bottom:14px;flex-wrap:wrap;
+  box-shadow:var(--shadow-sm)}
+.topbar-user{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--dim);flex-wrap:wrap}
+.role-badge{font-size:12px;padding:4px 10px;border-radius:20px;font-weight:700}
+.role-admin{background:var(--accent);color:var(--ink)}
+.role-user{background:var(--chip2);color:var(--text)}
+.topbar-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn-mini{display:inline-flex;align-items:center;gap:7px;background:var(--chip);color:var(--dim);
+  border:1px solid var(--chip2);border-radius:10px;padding:8px 15px;font-size:14px;font-family:inherit;
+  cursor:pointer;font-weight:600;min-height:36px;transition:background .18s,color .18s,transform .18s}
+.btn-mini:hover{background:var(--chip2);color:var(--text);transform:translateY(-1px)}
+.btn-logout{background:var(--logout-bg);color:var(--logout-fg);border-color:var(--logout-bg)}
+.btn-logout:hover{background:var(--logout-bg2);color:var(--logout-fg2)}
+.navbar{display:flex;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:8px;margin-bottom:22px;box-shadow:var(--shadow-sm);overflow-x:auto}
+.nav-link{flex:1;min-width:150px;display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:11px 16px;border-radius:11px;font-size:15px;font-weight:700;font-family:inherit;
+  color:var(--dim);text-decoration:none;white-space:nowrap;transition:background .18s,color .18s}
+.nav-link:hover{background:var(--chip);color:var(--text)}
+.nav-link.active{background:var(--accent);color:var(--ink)}
+.nav-link.locked{opacity:.45;cursor:not-allowed}
+
+/* ---------- بانر تنبيه المخزون (يظهر لكل المستخدمين) ---------- */
+.alert-banner{display:none;align-items:center;gap:12px;flex-wrap:wrap;background:rgba(245,165,36,.14);
+  border:1px solid var(--warn);color:var(--text);border-radius:14px;padding:12px 16px;margin-bottom:16px;
+  font-size:15px;font-weight:600}
+.alert-banner.show{display:flex}
+.alert-banner .ab-icon{font-size:20px}
+.alert-banner .ab-btn{margin-inline-start:auto}
+.tamper-banner{display:none;background:rgba(242,104,95,.16);border:1px solid var(--danger);color:var(--text);
+  border-radius:14px;padding:12px 16px;margin-bottom:16px;font-weight:700}
+.tamper-banner.show{display:block}
+
+/* ---------- الهيدر / الكروت ---------- */
+header{position:relative;overflow:hidden;text-align:start;padding:24px 30px;margin-bottom:22px;
+  border:1px solid var(--border);border-radius:20px;background:var(--surface);box-shadow:var(--shadow-sm)}
+header:after{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,var(--accent),transparent)}
+header h1{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;
+  font-size:32px;letter-spacing:0;color:var(--accent);line-height:1.45;font-weight:400}
+header p{font-size:14px;color:var(--mute);max-width:760px;line-height:1.9;margin-top:6px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:26px;margin-bottom:22px;box-shadow:var(--shadow-sm);overflow-x:auto}
+.card h2{font-size:19px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.card h2:before{content:"";display:inline-block;flex:none;width:5px;height:22px;border-radius:5px;background:var(--accent)}
+.section-title{font-size:15px;color:var(--accent);font-weight:700;margin:22px 0 12px;padding-top:18px;
+  border-top:1px solid var(--border)}
+.hint{font-size:14px;color:var(--mute);line-height:1.8;margin-bottom:14px}
+
+/* ---------- النماذج ---------- */
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.form-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.form-group{display:flex;flex-direction:column;min-width:0}
+.form-group.full{grid-column:1/-1}
+.form-group label{font-size:13px;font-weight:700;color:var(--dim);margin-bottom:7px}
+.form-group input,.form-group select,.form-group textarea,.search-bar input{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-input);
+  padding:11px 14px;color:var(--text);font-size:15px;font-family:inherit;outline:none;
+  min-height:46px;width:100%;transition:border-color .18s,box-shadow .18s,background .18s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus,.search-bar input:focus{
+  border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)}
+.form-group textarea{min-height:70px;resize:vertical;line-height:1.7}
+.form-group select{cursor:pointer}
+.search-bar{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.search-bar input{flex:1;min-width:220px}
+.barcode-input{font-size:22px!important;font-weight:800;letter-spacing:.06em;text-align:center;min-height:60px!important}
+.barcode-input:focus{border-color:var(--ok);box-shadow:0 0 0 3px rgba(79,194,107,.22)}
+
+/* ---------- الأزرار ---------- */
+.btn-row{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;min-height:46px;
+  border:none;border-radius:var(--radius-sm);font-size:16px;font-family:inherit;font-weight:700;
+  cursor:pointer;transition:background .18s,transform .15s,box-shadow .18s,filter .18s}
+.btn:active{transform:translateY(1px) scale(.99)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-primary{background:var(--accent);color:var(--ink);box-shadow:0 6px 16px -8px rgba(0,0,0,.45)}
+.btn-primary:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px)}
+.btn-ok{background:var(--ok);color:#000}
+.btn-ok:hover:not(:disabled){background:var(--ok2);transform:translateY(-1px)}
+.btn-del{background:var(--danger);color:#fff}
+.btn-del:hover:not(:disabled){background:var(--danger2)}
+.btn-warn{background:var(--warn);color:#000}
+.btn-warn:hover{background:var(--warn2)}
+.btn-secondary{background:var(--chip);color:var(--dim);border:1px solid var(--chip2)}
+.btn-secondary:hover{background:var(--chip2);color:var(--text)}
+.btn-sm{padding:6px 12px;min-height:34px;font-size:13px;border-radius:9px}
+
+/* ---------- أزرار الدفع (زران جاهزان وليس قائمة) ---------- */
+.pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:6px 0 16px}
+.pay-btn{display:flex;align-items:center;justify-content:center;gap:12px;min-height:74px;
+  background:var(--surface2);border:2px solid var(--border2);border-radius:16px;color:var(--text);
+  font-size:19px;font-weight:800;font-family:inherit;cursor:pointer;transition:all .18s}
+.pay-btn .pay-ico{font-size:26px;line-height:1}
+.pay-btn:hover{border-color:var(--accent);background:var(--hover)}
+.pay-btn.selected{border-color:var(--ok);background:rgba(79,194,107,.16);box-shadow:0 0 0 3px rgba(79,194,107,.18)}
+html[data-theme="light"] .pay-btn.selected{background:rgba(47,143,70,.12)}
+.total-box{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  background:var(--surface2);border:1px solid var(--border2);border-radius:16px;padding:16px 20px;margin-top:6px}
+.total-box .lbl{font-size:16px;color:var(--dim);font-weight:700}
+.total-box .val{font-size:30px;font-weight:900;color:var(--accent);line-height:1.2}
+
+/* ---------- الجداول ---------- */
+table{width:100%;border-collapse:separate;border-spacing:0 7px;margin-top:-7px;min-width:640px}
+th{padding:12px;text-align:start;color:var(--dim);font-size:13px;font-weight:700;
+  border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:11px 12px;text-align:start;border-bottom:1px solid var(--border);font-size:15px;
+  line-height:1.6;color:var(--text)}
+tbody tr{background:var(--surface2)}
+tbody tr td:first-child{border-radius:0 12px 12px 0}
+tbody tr td:last-child{border-radius:12px 0 0 12px}
+html[lang="en"] tbody tr td:first-child{border-radius:12px 0 0 12px}
+html[lang="en"] tbody tr td:last-child{border-radius:0 12px 12px 0}
+tbody tr:hover{background:var(--hover)}
+td input.cell{width:100%;min-width:78px;background:var(--surface);border:1px solid var(--border2);
+  border-radius:8px;padding:6px 9px;color:var(--text);font-size:14px;font-family:inherit;outline:none}
+td input.cell:focus{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.cell-num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.badge-ok{background:rgba(79,194,107,.18);color:var(--ok)}
+.badge-warn{background:rgba(245,165,36,.18);color:var(--warn)}
+.badge-bad{background:rgba(242,104,95,.18);color:var(--danger)}
+.badge-info{background:var(--chip2);color:var(--text)}
+.empty-msg{text-align:center;padding:30px 18px;color:var(--mute);font-size:15px;
+  border:1px dashed var(--border2);border-radius:14px;background:var(--surface2)}
+.stats-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.stat{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px}
+.stat .k{font-size:13px;color:var(--mute);margin-bottom:6px}
+.stat .v{font-size:23px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px}
+.filters .form-group{flex:1;min-width:150px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:10px}
+.tab-btn{background:var(--chip);border:1px solid var(--chip2);color:var(--dim);border-radius:10px;
+  padding:9px 17px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer}
+.tab-btn.active{background:var(--accent);color:var(--ink)}
+.muted{color:var(--mute);font-size:13px}
+.mono{direction:ltr;display:inline-block;font-family:Consolas,monospace;font-size:13px}
+
+/* ---------- ترجمة الباركود ---------- */
+.decode-box{background:var(--surface2);border:1px dashed var(--border2);border-radius:14px;
+  padding:14px 18px;margin:12px 0;line-height:2;font-size:14px;color:var(--dim)}
+.decode-box b{color:var(--text)}
+.decode-box .kv{display:inline-flex;gap:6px;margin-inline-end:22px}
+
+/* ---------- تسجيل الدخول ---------- */
+#loginView{display:none;min-height:72vh;align-items:center;justify-content:center}
+#loginView.show{display:flex}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:38px 34px;
+  width:100%;max-width:560px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.login-card:before{content:"";position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2) 55%,transparent)}
+.login-logo{font-family:"Lalezar","Cairo","Noto Kufi Arabic",Tahoma,sans-serif;text-align:center;
+  font-size:31px;color:var(--accent);margin-bottom:6px}
+.login-sub{text-align:center;color:var(--mute);font-size:14px;margin-bottom:24px}
+.login-field{margin-bottom:14px}
+.login-field label{display:block;font-size:14px;font-weight:600;color:var(--dim);margin-bottom:7px}
+.login-field input{width:100%;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:var(--radius-input);padding:12px 15px;color:var(--text);font-size:16px;
+  font-family:inherit;outline:none;min-height:48px}
+.login-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.login-btn{width:100%;background:var(--accent);color:var(--ink);border:none;border-radius:var(--radius-sm);
+  padding:13px 26px;min-height:48px;font-size:17px;font-weight:700;font-family:inherit;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.login-btn:hover{background:var(--accent2)}
+.login-error{color:var(--danger);font-size:14px;font-weight:600;text-align:center;min-height:18px;margin-top:10px}
+
+/* ---------- modals / toast / msg box ---------- */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(8,12,16,.66);
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);z-index:2000;
+  justify-content:center;align-items:center;padding:20px;overflow:auto}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:26px;
+  width:100%;max-width:600px;max-height:90vh;overflow:auto;box-shadow:var(--shadow)}
+.modal h2{display:flex;align-items:center;gap:10px;color:var(--text);font-size:20px;font-weight:700;margin-bottom:16px}
+.modal h2:before{content:"";flex:none;width:5px;height:20px;border-radius:5px;background:var(--accent)}
+.modal .btn-row{justify-content:flex-end}
+#msgOverlay{z-index:4000}
+#msgOverlay .modal{max-width:480px;border-color:var(--warn)}
+#msgOverlay .msg-icon{font-size:42px;text-align:center;line-height:1;margin-bottom:6px}
+#msgOverlay .msg-title{text-align:center;font-size:20px;font-weight:800;color:var(--warn);margin-bottom:10px}
+#msgOverlay .msg-text{text-align:center;font-size:15px;color:var(--dim);line-height:1.9;margin-bottom:14px}
+.msg-list{max-height:230px;overflow:auto;margin-bottom:16px}
+.msg-item{display:flex;justify-content:space-between;gap:12px;background:var(--surface2);
+  border:1px solid var(--border);border-radius:11px;padding:10px 14px;margin-bottom:7px;font-size:14px}
+.msg-item b{color:var(--danger)}
+.toast{position:fixed;top:84px;left:50%;transform:translateX(-50%);background:var(--ok);color:#000;
+  padding:13px 22px;border-radius:12px;font-size:15px;font-weight:700;z-index:5000;display:none;
+  text-align:center;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);max-width:90vw}
+.toast.error{background:var(--danger);color:#fff}
+.toast.show{display:block;animation:fadeIn .28s}
+@keyframes fadeIn{from{opacity:0;transform:translate(-50%,-10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ---------- المستخدمون ---------- */
+.user-row{border:1px solid var(--border);border-radius:14px;padding:15px;margin-bottom:11px;background:var(--surface2)}
+.user-row-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:11px}
+.user-name{font-weight:700;color:var(--text);font-size:16px}
+.user-meta{font-size:12px;color:var(--mute);margin-top:3px}
+.perm-list{display:flex;flex-wrap:wrap;gap:14px}
+.perm-item{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--dim);cursor:pointer;user-select:none}
+.perm-item input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+.perm-item input:disabled{opacity:.45;cursor:not-allowed}
+.bk-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--border);
+  background:var(--surface2);border-radius:12px;padding:10px 14px;margin-bottom:8px;flex-wrap:wrap}
+
+/* ---------- كاميرا الباركود ---------- */
+#cameraVideo{width:100%;max-height:320px;background:#000;border-radius:12px;object-fit:cover}
+
+/* ---------- إيصال حراري 80mm ---------- */
+#receiptArea{background:#fff;color:#000;padding:10px;border-radius:6px;direction:rtl;
+  font-family:"IBM Plex Sans Arabic",Tahoma,Arial,sans-serif}
+.rc{width:100%;max-width:80mm;margin:0 auto;background:#fff;color:#000;font-size:12px;line-height:1.55}
+.rc .r-name{text-align:center;font-size:19px;font-weight:900;letter-spacing:0}
+.rc .r-sub{text-align:center;font-size:11px;margin-bottom:6px}
+.rc .r-meta{text-align:center;font-size:11px;border-top:1px dashed #000;border-bottom:1px dashed #000;
+  padding:5px 0;margin:6px 0}
+.rc table{width:100%;min-width:0;border-collapse:collapse;margin:6px 0;color:#000;font-size:11px}
+.rc th,.rc td{padding:3px 2px;border:none;color:#000;font-size:11px;line-height:1.45;text-align:start}
+.rc th{border-bottom:1px solid #000;font-weight:800}
+.rc .r-tot{border-top:1px dashed #000;padding-top:5px;margin-top:5px}
+.rc .r-line{display:flex;justify-content:space-between;gap:10px}
+.rc .r-grand{font-size:15px;font-weight:900;border-top:2px solid #000;border-bottom:2px solid #000;
+  padding:5px 0;margin:6px 0}
+.rc .r-foot{text-align:center;font-size:10px;margin-top:9px;border-top:1px dashed #000;padding-top:6px}
+.rc .r-barcode{text-align:center;font-family:Consolas,monospace;font-size:16px;letter-spacing:2px;margin-top:5px}
+@page{size:80mm 200mm;margin:0}
+@media print{
+  html,body{background:#fff!important;padding:0!important;margin:0!important;width:80mm!important;
+    height:auto!important;overflow:visible!important;color:#000!important}
+  body:before{display:none!important}
+  body>*:not(#phModals){display:none!important}
+  body *{visibility:hidden!important}
+  #phModals{display:block!important;position:static!important;visibility:visible!important;
+    inset:auto!important;background:transparent!important;padding:0!important;margin:0!important;
+    width:80mm!important;height:auto!important;overflow:visible!important}
+  #phModals>*:not(#receiptModal){display:none!important}
+  #receiptModal{display:block!important;position:static!important;inset:auto!important;visibility:visible!important;
+    background:transparent!important;padding:0!important;margin:0!important;width:80mm!important;
+    height:auto!important;overflow:visible!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+  #receiptModal .modal{display:block!important;position:static!important;visibility:visible!important;
+    border:none!important;border-radius:0!important;box-shadow:none!important;width:80mm!important;
+    max-width:80mm!important;max-height:none!important;overflow:visible!important;padding:0!important;
+    margin:0!important;background:#fff!important}
+  #receiptModal .modal>.btn-row{display:none!important}
+  #receiptModal .modal>*{visibility:hidden!important}
+  #receiptModal #receiptArea,#receiptModal #receiptArea *{visibility:visible!important}
+  #receiptArea{position:static!important;width:80mm!important;max-width:80mm!important;padding:2mm 3mm 6mm!important;
+    margin:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;
+    box-sizing:border-box}
+  .rc{width:100%}
+}
+
+/* ---------- متجاوب ---------- */
+@media(max-width:760px){
+  body{padding:120px 12px 24px}
+  .topcontrols{height:105px}
+  .ctl-group{margin:0 12px 8px}
+  .bm-l{width:90px}.bm-r{width:80px;margin-inline-end:140px}.bm-n{width:52vw}
+  .card{padding:18px;border-radius:16px}
+  header{padding:20px}
+  header h1{font-size:25px}
+  .form-grid,.form-grid.three{grid-template-columns:1fr}
+  .form-group.full{grid-column:auto}
+  .stats-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pay-grid{grid-template-columns:1fr}
+  .nav-link{min-width:120px;font-size:13px;padding:10px}
+  .login-card{padding:28px 20px}
+  .modal{padding:20px}
+  .seg-btn{padding:7px 10px}
+}
