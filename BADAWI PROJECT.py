@@ -58,7 +58,8 @@ _setup_console()
 
 import threading
 import webbrowser
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
 
@@ -313,7 +314,7 @@ def verify_password(password, stored):
 #  الإعدادات (اللغة / الثيم / آخر تعديل)
 # ------------------------------------------------------------------
 
-DEFAULT_SETTINGS = {"lang": "ar", "theme": "dark", "last_edit": "", "last_ticket_number": 0}
+DEFAULT_SETTINGS = {"lang": "ar", "theme": "dark", "last_edit": "", "last_ticket_number": 0, "ticket_day": "", "ticket_letter": "", "ticket_last": 0}
 
 
 def load_settings():
@@ -472,19 +473,77 @@ def next_id(patients):
     return max(p["id"] for p in patients) + 1
 
 
+# يوم العمل ينتهي الساعة 10 مساءً: بعدها يبدأ يوم جديد وعدّاد التذاكر يرجع لـ 1
+DAY_CUTOFF_HOUR = 22
+
+
+def business_day(dt=None):
+    dt = dt or datetime.now()
+    if dt.hour >= DAY_CUTOFF_HOUR:
+        dt = dt + timedelta(days=1)
+    return dt.strftime("%Y-%m-%d")
+
+
+def patient_day(p):
+    d = p.get("day")
+    if d:
+        return str(d)
+    raw = str(p.get("date", ""))
+    try:
+        return business_day(datetime.strptime(raw[:16], "%Y-%m-%d %H:%M"))
+    except Exception:
+        return raw[:10]
+
+
+def next_letter(c):
+    return chr((ord(c) - 65 + 1) % 26 + 65)
+
+
+def _ticket_state():
+    """Returns (business_day, letter, last_number_today). The letter advances once per new day."""
+    s = load_settings()
+    today = business_day()
+    letter = str(s.get("ticket_letter") or "").upper()[:1]
+    last = 0
+    if not ("A" <= letter <= "Z"):
+        letter = "A"            # first time the lettering is used: start at A
+    else:
+        day = s.get("ticket_day", "")
+        if day == today:
+            try:
+                last = int(s.get("ticket_last", 0) or 0)
+            except Exception:
+                last = 0
+        else:
+            letter = next_letter(letter)   # a new day -> next letter
+    return today, letter, last
+
+
+def peek_next_ticket(patients):
+    today, letter, last = _ticket_state()
+    existing = []
+    for p in patients:
+        if patient_day(p) == today and p.get("ticket_letter") == letter:
+            try:
+                existing.append(int(p.get("ticket_no", 0) or 0))
+            except Exception:
+                pass
+    return max([last] + existing) + 1, letter
+
+
 def peek_next_ticket_number(patients):
-    settings = load_settings()
-    last = int(settings.get("last_ticket_number", 0) or 0)
-    existing = [int(p.get("ticket_no", p.get("id", 0)) or 0) for p in patients]
-    return max([last] + existing) + 1
+    n, letter = peek_next_ticket(patients)
+    return "%d%s" % (n, letter)
 
 
-def allocate_ticket_number(patients):
+def allocate_ticket(patients):
+    n, letter = peek_next_ticket(patients)
     settings = load_settings()
-    number = peek_next_ticket_number(patients)
-    settings["last_ticket_number"] = number
+    settings["ticket_day"] = business_day()
+    settings["ticket_letter"] = letter
+    settings["ticket_last"] = n
     save_settings(settings)
-    return number
+    return n, letter
 
 
 # ------------------------------------------------------------------
@@ -536,7 +595,7 @@ def public_user(u):
         "username": u["username"],
         "name": u.get("name", u["username"]),
         "role": u.get("role", "user"),
-        "perms": u.get("perms", {p: False for p in PERMS}),
+        "perms": ({p: True for p in PERMS} if u.get("role") == "admin" else u.get("perms", {p: False for p in PERMS})),
         "active": u.get("active", True),
         "created": u.get("created", ""),
     }
@@ -605,7 +664,7 @@ svg{flex:none}
 body{
   font-family:"IBM Plex Sans Arabic","Noto Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;
   background:var(--bg);color:var(--text);min-height:100vh;
-  padding:92px 24px 40px;letter-spacing:.01em;
+  padding:190px 24px 40px;letter-spacing:.01em;
   transition:background .25s,color .25s;overflow-x:hidden;
 }
 body:before{
@@ -622,16 +681,20 @@ input:-webkit-autofill{-webkit-box-shadow:0 0 0 1000px var(--surface2) inset;-we
 
 /* ---------- Fixed top controls ---------- */
 .topcontrols{
-  position:fixed;top:0;left:0;right:0;height:64px;display:flex;align-items:center;
-  justify-content:space-between;gap:12px;padding:0 max(24px,calc((100vw - 1120px)/2));
-  background:rgba(13,19,25,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
-  border-bottom:1px solid var(--border);z-index:1500;box-shadow:0 8px 26px -18px rgba(0,0,0,.7);
+  position:fixed;top:0;left:0;right:0;height:170px;display:flex;align-items:flex-start;
+  justify-content:flex-end;align-items:flex-end!important;gap:12px;padding:0;overflow:hidden;
+  background:linear-gradient(to bottom,rgba(13,19,25,.86) 55%,rgba(13,19,25,0) 100%);
+  z-index:1500;direction:rtl;
 }
-html[data-theme="light"] .topcontrols{background:rgba(255,255,255,.86)}
+html[data-theme="light"] .topcontrols{background:linear-gradient(to bottom,rgba(255,255,255,.86) 55%,rgba(255,255,255,0) 100%)}
 .brand-mini{font-family:"Lalezar","Cairo","Noto Kufi Arabic","Reem Kufi","IBM Plex Sans Arabic",Tahoma,sans-serif;font-size:18px;font-weight:400;letter-spacing:0;color:var(--accent)}
-.ctl-group{display:flex;align-items:center;gap:8px}
+.brand-mini{position:absolute;inset:0;z-index:0;display:flex;align-items:center;justify-content:space-between;background:#ebe8e2;overflow:hidden;line-height:0;-webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent 100%);mask-image:linear-gradient(to bottom,#000 55%,transparent 100%)}
+.bm-l{height:100%;width:300px;object-fit:cover;object-position:center 25%;flex:0 0 auto;display:block}
+.bm-r{height:100%;width:240px;object-fit:cover;object-position:center 15%;flex:0 0 auto;display:block;margin-inline-end:200px}
+.bm-n{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:auto;width:min(44vw,640px);display:block;z-index:1;pointer-events:none}
+.ctl-group{display:flex;align-items:center;gap:8px;position:relative;z-index:2;margin:0 24px 12px}
 .seg{display:flex;gap:2px;background:var(--chip);border:1px solid var(--border2);border-radius:11px;padding:3px}
-.seg-btn{background:transparent;border:none;color:var(--dim);padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;font-weight:700;border-radius:8px;transition:background .18s,color .18s}
+.seg-btn{background:transparent;border:none;color:var(--dim);min-width:74px;text-align:center;padding:7px 14px;font-size:13px;font-family:inherit;cursor:pointer;font-weight:700;border-radius:8px;transition:background .18s,color .18s}
 .seg-btn:hover{color:var(--text)}
 .seg-btn.active{background:var(--accent);color:var(--ink);box-shadow:0 2px 8px -3px rgba(0,0,0,.45)}
 .ctl-btn{background:var(--chip);border:1px solid var(--border2);color:var(--text);width:38px;height:38px;border-radius:10px;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .18s,transform .18s}
@@ -696,6 +759,7 @@ header p{font-size:15px;color:var(--mute);max-width:650px;line-height:1.9;margin
 /* ---------- Forms ---------- */
 .form-grid{display:grid;grid-template-columns:1fr;gap:11px}
 #addCard{padding:24px}
+#addCard .form-grid,#addCard .btn-row{max-width:min(560px,100%);margin-inline:auto}
 #addCard .form-group label{margin-bottom:5px}
 #addCard .form-group input,#addCard .form-group select{min-height:42px;padding:9px 13px;font-size:15px}
 #addCard .form-group textarea{min-height:68px;padding:9px 13px;font-size:15px}
@@ -754,6 +818,12 @@ tbody tr td:last-child{border-radius:12px 0 0 12px}
 tbody tr:hover{background:var(--hover)}
 
 /* ---------- Toast ---------- */
+#mbOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px}
+#mbOverlay .mb-box{background:var(--card,#fff);color:var(--text,#222);border-radius:14px;padding:22px 22px 18px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 50px -20px rgba(0,0,0,.6);border:1px solid var(--line,#e2e6ee)}
+#mbOverlay .mb-icon{font-size:30px;line-height:1;margin-bottom:8px}
+#mbOverlay .mb-title{font-weight:800;font-size:17px;margin-bottom:8px;color:#b42318}
+#mbOverlay .mb-text{font-size:15px;margin-bottom:16px;line-height:1.7;white-space:pre-line}
+#mbOverlay .mb-ok{padding:9px 30px;border:0;border-radius:10px;background:var(--accent,#1f7a5c);color:#fff;font-size:15px;cursor:pointer;font-family:inherit}
 .toast{
   position:fixed;top:84px;left:50%;transform:translateX(-50%);
   background:var(--ok);color:#000;padding:13px 22px;border-radius:12px;
@@ -794,29 +864,39 @@ tbody tr:hover{background:var(--hover)}
 /* ---------- Print preview (single-page patient receipt) ---------- */
 #printArea{background:#fff;color:#000;padding:24px;border-radius:8px;margin-bottom:16px;direction:rtl}
 #printArea .ph-title{font-size:26px;font-weight:bold;text-align:center;margin-bottom:8px;color:#000}
-#printArea .ph-datetime{text-align:center;font-size:14px;line-height:1.8;margin:8px 0 14px;padding-bottom:12px;border-bottom:2px solid #000;color:#000}
+#printArea .ph-datetime{text-align:center;font-size:11px;line-height:1.8;margin:8px 0 14px;padding-bottom:12px;border-bottom:2px solid #000;color:#000}
 #printArea .ph-patient table{width:100%;border-collapse:collapse;page-break-inside:avoid;break-inside:avoid}
 #printArea .ph-patient th,#printArea .ph-patient td{padding:9px 12px;text-align:start;border:1px solid #222;font-size:15px;color:#000;line-height:1.45}
 #printArea .ph-patient th{background:#f3f3f3;font-weight:700;width:30%}
-#printArea .ph-footer{text-align:center;font-size:19px;font-weight:700;margin-top:18px;color:#000}
-@page{size:A4;margin:12mm}
+#printArea .ph-footer{text-align:center;font-size:12px;font-weight:700;margin-top:18px;color:#000}
+.btn-off{opacity:.45;filter:grayscale(.7)}
+#printArea .ph-ticket{text-align:center;margin:4px 0 16px}
+#printArea .ph-ticket-lbl{font-size:18px;font-weight:700;color:#000}
+#printArea .ph-ticket-num{font-size:50px;font-weight:900;line-height:1.1;color:#000}
+#printArea .ph-copy:not(:first-child){display:none}
+@page{size:80mm auto;margin:0}
 @media print{
   html,body{background:#fff!important;padding:0!important;margin:0!important;width:100%!important;height:auto!important;overflow:visible!important}
   body:before{display:none!important}
+  body> :not(#printModal){display:none!important}
   body *{visibility:hidden!important}
   #printModal{display:block!important;position:static!important;inset:auto!important;visibility:visible!important;background:transparent!important;padding:0!important;margin:0!important;width:100%!important;height:auto!important;overflow:visible!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
   #printModal .modal{display:block!important;position:static!important;visibility:visible!important;border:none!important;border-radius:0!important;box-shadow:none!important;width:100%!important;max-width:none!important;max-height:none!important;overflow:visible!important;padding:0!important;margin:0!important;background:#fff!important}
   #printModal .modal>*{visibility:hidden!important}
   #printArea,#printArea *{visibility:visible!important}
-  #printArea{position:static!important;width:100%!important;max-width:100%!important;padding:0!important;margin:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;page-break-inside:avoid;break-inside:avoid}
-  #printArea .ph-title{font-size:24px}
-  #printArea .ph-patient th,#printArea .ph-patient td{padding:8px 10px;font-size:14px}
+  #printArea{position:static!important;width:100%!important;max-width:100%!important;padding:0!important;margin:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+  #printArea .ph-copy{display:block!important;padding:3mm 3mm 8mm!important;margin:0!important;box-sizing:border-box;page-break-after:always;break-after:page;page-break-inside:avoid;break-inside:avoid}
+  #printArea .ph-copy:last-child{page-break-after:auto;break-after:auto}
+  #printArea .ph-title{font-size:17px}
+  #printArea .ph-patient th,#printArea .ph-patient td{padding:4px 5px;font-size:11px}
 }
 
 /* ---------- Responsive ---------- */
 @media(max-width:700px){
-  body{padding:78px 14px 24px}
-  .topcontrols{padding:0 14px}
+  body{padding:130px 14px 24px}
+  .topcontrols{height:110px}
+  .ctl-group{margin:0 14px 8px}
+  .bm-l{width:90px}.bm-r{width:80px;margin-inline-end:150px}.bm-n{width:52vw}
   header{padding:23px 20px}
   header h1{font-size:28px}
   .card{padding:20px;border-radius:16px}
@@ -838,7 +918,7 @@ tbody tr:hover{background:var(--hover)}
 
 <!-- ============ شريط اللغة والثيم ============ -->
 <div class="topcontrols">
-  <div class="brand-mini" id="brandMini" data-i18n="brand">مستشفى الشيخ برير الشيخ الصديق</div>
+  <div class="brand-mini" id="brandMini"><img class="bm-l" src="/brand-left.jpg" alt=""><img class="bm-n" src="/brand-name.png" alt="مستشفى الشيخ برير الشيخ الصديق" title="مستشفى الشيخ برير الشيخ الصديق"><img class="bm-r" src="/brand-right.jpg" alt=""></div>
   <div class="ctl-group">
     <div class="seg">
       <button class="seg-btn active" id="langAr" onclick="setLang('ar')">عربي</button>
@@ -886,6 +966,8 @@ tbody tr:hover{background:var(--hover)}
       <button class="btn-mini" id="btnUsers" onclick="openUsers()" style="display:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="btn_users">إدارة المستخدمين</span></button>
       <button class="btn-mini" id="btnBackup" onclick="openBackup()" style="display:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg><span data-i18n="btn_backup">النسخ الاحتياطي</span></button>
       <button class="btn-mini" id="btnPass" onclick="openPass()" style="display:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span data-i18n="btn_pass">كلمة المرور</span></button>
+      <a class="btn-mini" href="/lab" id="btnCbcLab" style="display:none;text-decoration:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v6L4.5 19a1.5 1.5 0 0 0 1.3 2.2h12.4a1.5 1.5 0 0 0 1.3-2.2L14 9V3"/></svg><span data-i18n="btn_lab">المعمل</span></a>
+      <a class="btn-mini" href="/reports" id="btnReports" style="text-decoration:none"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg><span data-i18n="btn_reports">التقارير</span></a>
       <button class="btn-mini btn-logout" onclick="doLogout()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span data-i18n="btn_logout">تسجيل الخروج</span></button>
     </div>
   </div>
@@ -919,6 +1001,7 @@ tbody tr:hover{background:var(--hover)}
       <input type="text" id="searchInput" data-i18n-ph="ph_search" oninput="searchPatients()">
       <button class="btn btn-secondary" id="btnExport" onclick="exportCsv()" style="display:none"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg><span data-i18n="btn_export">تصدير CSV</span></button>
     </div>
+    <div id="listBody" style="display:none">
     <div class="stats" id="stats"></div>
     <table><thead><tr>
       <th>#</th><th data-i18n="th_name">الاسم</th><th data-i18n="th_age">العمر</th>
@@ -927,6 +1010,7 @@ tbody tr:hover{background:var(--hover)}
       <th data-i18n="th_date">التاريخ</th><th data-i18n="th_actions">إجراءات</th>
     </tr></thead><tbody id="patientTable"></tbody></table>
     <div class="empty-msg" id="emptyMsg" style="display:none" data-i18n="empty_none"></div>
+    </div>
   </div>
 
 </div>
@@ -1049,7 +1133,7 @@ ar:{
  card_add:"تسجيل مريض جديد",lbl_name:"الاسم *",ph_name:"اسم المريض",lbl_age:"العمر",ph_age:"العمر بالسنوات",
  lbl_gender:"الجنس",choose:"-- اختر --",male:"ذكر",female:"أنثى",
  lbl_complaint:"الشكوى",ph_complaint:"اكتب الشكوى / الأعراض",ticket_number:"رقم التذكرة",time_label:"الوقت",print_footer:"وَإِذَا مَرِضْتُ فَهُوَ يَشْفِينِ",lbl_payment_method:"طريقة الدفع",payment_cash:"كاش",payment_transfer:"تحويل",lbl_amount:"المبلغ",ph_amount:"أدخل المبلغ بالأرقام",
- btn_register:"تسجيل",btn_print:"طباعة",btn_register_print:"تسجيل وطباعة",btn_clear:"مسح الحقول",
+ btn_reports:"التقارير",btn_lab:"المعمل",btn_cbc:"طباعة CBC",cbc_none:"لم يتم إدخال نتيجة للمريض",p_lab:"المعمل",btn_register:"تسجيل",btn_print:"طباعة",btn_register_print:"تسجيل وطباعة",btn_clear:"مسح الحقول",
  card_list:"المرضى المسجلين",ph_search:"ابحث بالاسم أو العمر أو الجنس أو الشكوى...",
  stats:"عدد المرضى: {n}",th_name:"الاسم",th_age:"العمر",th_gender:"الجنس",th_complaint:"الشكوى",th_date:"التاريخ",th_actions:"إجراءات",
  empty_none:"لا توجد بيانات مسجلة بعد",view_only:"عرض فقط",edit:"تعديل",del:"حذف",print:"طباعة",
@@ -1062,11 +1146,11 @@ ar:{
  backup_title:"النسخ الاحتياطي",
  backup_hint:"يتم إنشاء نسخة احتياطية تلقائياً كل يوم مع كل حفظ، ويُحتفظ بآخر 30 نسخة. النسخ مشفّرة في مجلد backups.",
  backup_create:"إنشاء نسخة الآن",backup_none:"لا توجد نسخ احتياطية بعد",restore:"استعادة",size:"الحجم",
-    lab_title:"مجال المختبر",lab_intro:"المحتوى متاح فقط للمستخدمين المصرح لهم — سجل دخولك أو اطلب الصلاحية من المدير",
-    lab_need_access:"أنت لست مرخصًا بدخول المختبر",lab_request_tip:"اطلب الصلاحية من المدير",
-    lab_denied:"عذراً، لا تملك صلاحية الدخول إلى مجال المختبر",
-    lab_load:"جارٍ التحميل…",lab_empty:"لا توجد محتويات في مختبر المختبر بعد",
-    lab_access_granted:"تم منحك صلاحية المختبر",
+    
+    
+    
+    
+    
  pass_title:"تغيير كلمة المرور",pass_current:"كلمة المرور الحالية",pass_new:"كلمة المرور الجديدة",pass_confirm:"تأكيد كلمة المرور",
  last_edit:"آخر تعديل: ",theme_tip:"تبديل الوضع الليلي/النهاري",
  toast_saved:"تم حفظ بيانات المريض",toast_deleted:"تم حذف بيانات المريض",toast_updated:"تم تحديث البيانات",
@@ -1084,7 +1168,7 @@ ar:{
  e_inactive:"هذا الحساب موقوف — راجع المدير",e_user_exists:"اسم المستخدم موجود بالفعل",
  e_password_short:"كلمة المرور 6 أحرف على الأقل",e_username_required:"اسم المستخدم مطلوب",
  e_admin_locked:"لا يمكن تعديل أو حذف حساب المدير",e_need_name:"اكتب الاسم أولاً للطباعة",
- e_no_lab_access:"ليس لديك الصلاحية لدخول مختبر المختبر",
+ 
  e_bad_pass:"كلمة المرور الحالية غير صحيحة",e_pass_mismatch:"كلمتا المرور غير متطابقتين",
  e_conn:"تعذّر الاتصال بالبرنامج"
 },
@@ -1099,7 +1183,7 @@ en:{
  card_add:"New patient",lbl_name:"Name *",ph_name:"Patient name",lbl_age:"Age",ph_age:"Age in years",
  lbl_gender:"Gender",choose:"-- Select --",male:"Male",female:"Female",
  lbl_complaint:"Complaint",ph_complaint:"Write the complaint / symptoms",ticket_number:"Ticket number",time_label:"Time",print_footer:"And when I am ill, it is He who cures me",lbl_payment_method:"Payment method",payment_cash:"Cash",payment_transfer:"Transfer",lbl_amount:"Amount",ph_amount:"Enter amount",
- btn_register:"Save",btn_print:"Print",btn_register_print:"Save & print",btn_clear:"Clear fields",
+ btn_reports:"Reports",btn_lab:"Lab",btn_cbc:"Print CBC",cbc_none:"No lab result has been entered for this patient",p_lab:"Lab",btn_register:"Save",btn_print:"Print",btn_register_print:"Save & print",btn_clear:"Clear fields",
  card_list:"Registered patients",ph_search:"Search by name, age, gender or complaint...",
  stats:"Patients: {n}",th_name:"Name",th_age:"Age",th_gender:"Gender",th_complaint:"Complaint",th_date:"Date",th_actions:"Actions",
  empty_none:"No records yet",view_only:"View only",edit:"Edit",del:"Delete",print:"Print",
@@ -1123,7 +1207,7 @@ en:{
  confirm_restore:"Restore this backup? Current data will be replaced.",
  warn_restored:"The data file was modified outside the app — the latest backup was restored.",
  warn_tampered:"The data file is corrupted or was modified outside the app. Use a backup to restore.",
- e_generic:"Something went wrong",e_login_required:"Please sign in",e_admin_only:"Admins only",e_no_lab_access:"You do not have permission to enter the Lab",
+ e_generic:"Something went wrong",e_login_required:"Please sign in",e_admin_only:"Admins only",
  e_perm_denied:"You do not have permission for this action",e_name_required:"Name is required",
  e_not_found:"Not found",e_bad_credentials:"Wrong username or password",
  e_inactive:"This account is disabled — contact the admin",e_user_exists:"Username already exists",
@@ -1135,8 +1219,8 @@ en:{
 
 let LANG='ar',THEME='dark';
 let ME=null,allPatients=[],viewPatients=[],editingId=null,USERS=[],BACKUPS=[];
-const PERMS=["view","add","edit","delete","print"];
-const PERM_KEY={view:"p_view",add:"p_add",edit:"p_edit",delete:"p_delete",print:"p_print"};
+const PERMS=["view","add","edit","delete","print","lab"];
+const PERM_KEY={view:"p_view",add:"p_add",edit:"p_edit",delete:"p_delete",print:"p_print",lab:"p_lab"};
 
 function t(k){const d=I18N[LANG]||I18N.ar;if(d[k]!==undefined)return d[k];return I18N.ar[k]!==undefined?I18N.ar[k]:k;}
 function tf(k,rep){let s=t(k);Object.keys(rep||{}).forEach(function(x){s=s.split('{'+x+'}').join(rep[x]);});return s;}
@@ -1185,7 +1269,23 @@ function toggleTheme(){
 
 /* ==================== أدوات ==================== */
 function esc(s){if(s===null||s===undefined)return'';return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
-function showToast(m,e){const t2=document.getElementById('toast');t2.textContent=m;t2.className='toast show'+(e?' error':'');setTimeout(function(){t2.className='toast';},3400);}
+function msgBox(text,title){
+  var o=document.getElementById('mbOverlay');
+  if(!o){
+    o=document.createElement('div');o.id='mbOverlay';
+    o.innerHTML='<div class="mb-box"><div class="mb-icon">&#9888;</div><div class="mb-title"></div><div class="mb-text"></div><button class="mb-ok" type="button">حسناً</button></div>';
+    document.body.appendChild(o);
+    var close=function(){o.style.display='none';};
+    o.querySelector('.mb-ok').onclick=close;
+    o.addEventListener('click',function(e){if(e.target===o)close();});
+    document.addEventListener('keydown',function(e){if(o.style.display==='flex'&&(e.key==='Escape'||e.key==='Enter')){e.preventDefault();close();}});
+  }
+  o.querySelector('.mb-title').textContent=title||'تنبيه';
+  o.querySelector('.mb-text').textContent=String(text||'');
+  o.style.display='flex';
+  setTimeout(function(){var b=o.querySelector('.mb-ok');if(b)b.focus();},50);
+}
+function showToast(m,e){if(e){msgBox(m);return;}const t2=document.getElementById('toast');t2.textContent=m;t2.className='toast show'+(e?' error':'');setTimeout(function(){t2.className='toast';},3400);}
 async function api(url,opts){
   opts=opts||{};
   const r=await fetch(url,opts);
@@ -1260,63 +1360,8 @@ function applyPermissions(){
   setDisp('btnBackup',isAdmin()?'inline-flex':'none');
   setDisp('btnPass','inline-flex');
   setDisp('btnExport',isAdmin()?'inline-flex':'none');
+  setDisp('btnCbcLab',can('lab')?'inline-flex':'none');
   setDisp('addCard',can('add')?'block':'none');
-  const showLab=!!(ME.perms&&ME.perms['lab'])&&!!document.getElementById('labPage');
-  setDisp('btnLab',showLab?'inline-flex':'none');
-  setDisp('labAccess',showLab?'block':'none');
-  setDisp('labDenied',showLab?'none':'block');
-  setDisp('labPage',showLab?'block':'none');
-  if(showLab){document.getElementById('labContent').innerHTML='';applyLab();}
-}
-
-/* ==================== مختبر المختبر ==================== */
-function applyLab(){
-  if(!ME||!ME.perms||!ME.perms['lab']){closeLab();return;}
-  const labPageEl=document.getElementById('labPage');
-  const cl=document.getElementById('labContent');
-  if(!labPageEl||!cl)return;
-  labPageEl.style.display='block';
-  cl.innerHTML='<p>'+esc(t('lab_load'))+'<span id="labLoading"></span></p>';
-  api('/api/lab')
-    .then(function(j){
-      if(j&&j.allowed){
-        const items=j.content||[];
-        if(items.length){
-          cl.innerHTML=items.map(function(x){
-            return '<div class="lab-item" style="border:1px solid var(--border2);border-radius:12px;padding:18px;margin:12px 0;background:var(--surface2);break-inside:avoid"><div style="font-weight:700;color:var(--text);margin-bottom:8px">'+esc(x.name)+'</div><pre style="font-size:14px;color:var(--text);background:var(--surface);padding:14px;border-radius:8px;overflow:auto;white-space:pre-wrap" dir="auto">'+esc(x.content)+'</pre></div>';
-          }).join('');
-          const ll=document.getElementById('labLoading');
-          if(ll)ll.textContent='';
-        }else{
-          cl.innerHTML='<p data-i18n="lab_empty">لا توجد محتويات في مختبر المختبر بعد.</p>';
-        }
-      }else{
-        closeLab();
-        showToast(errMsg(j),true);
-      }
-    })
-    .catch(function(){closeLab();showToast(t('e_conn'),true);});
-}
-function closeLab(){
-  setDisp('labPage','none');
-  setDisp('labAccess','block');
-  setDisp('labGate','block');
-  setDisp('labDenied','none');
-}
-function openLabRequest(){
-  if(!ME)return;
-  const room=document.getElementById('labRequestRoom');
-  const rid=room.value.trim()||('lab-'+Date.now());
-  room.value='';
-  api('/api/lab',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request:{roomId:rid,status:'requested'}})})
-    .then(function(j){
-      if(j&&j.granted){closeLab();showToast(t('lab_access_granted'),true);}
-      else showToast(errMsg(j),true);
-    })
-    .catch(function(){showToast(t('e_conn'),true);});
-}
-function renderLabAccess(){
-  if(!ME||!ME.perms||!ME.perms['lab']){closeLab();}
 }
 
 /* ==================== آخر تعديل ==================== */
@@ -1372,8 +1417,10 @@ async function registerAndPrint(){
     }else showToast(errMsg(j),true);
   }catch(e){}
 }
+function setListVisible(v){const b=document.getElementById('listBody');if(b)b.style.display=v?'block':'none';}
 async function searchPatients(){
   const q=document.getElementById('searchInput').value.trim();
+  setListVisible(!!q);
   if(!q){viewPatients=allPatients;renderTable(viewPatients);return;}
   try{
     const j=await api('/api/search?q='+encodeURIComponent(q));
@@ -1395,8 +1442,9 @@ function renderTable(p){
     if(can('edit'))acts+='<button class="btn btn-sm btn-warn" onclick="openEdit('+x.id+')">'+sv('pencil',14)+esc(t('edit'))+'</button> ';
     if(can('delete'))acts+='<button class="btn btn-sm btn-del" onclick="del('+x.id+')">'+sv('trash',14)+esc(t('del'))+'</button> ';
     if(can('print'))acts+='<button class="btn btn-sm btn-ok" onclick="printPatient('+x.id+')">'+sv('printer',14)+esc(t('print'))+'</button>';
+    if(can('print'))acts+=' <button class="btn btn-sm '+(x.cbc?'btn-ok':'btn-off')+'" onclick="printCbc('+x.id+')">'+sv('printer',14)+esc(t('btn_cbc'))+'</button>';
     if(!acts)acts='<span style="color:var(--mute);font-size:13px">'+esc(t('view_only'))+'</span>';
-    return '<tr><td>'+esc(x.ticket_no||x.id)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.age)+'</td><td>'+esc(genderLabel(x.gender))+'</td><td>'+esc(x.complaint||'')+'</td><td>'+esc(paymentLabel(x.payment_method))+'</td><td>'+esc(x.amount||'')+'</td><td style="font-size:13px;color:var(--mute)" dir="ltr">'+esc(x.date)+'</td><td>'+acts+'</td></tr>';
+    return '<tr><td>'+esc(x.ticket_label||x.ticket_no||x.id)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.age)+'</td><td>'+esc(genderLabel(x.gender))+'</td><td>'+esc(x.complaint||'')+'</td><td>'+esc(paymentLabel(x.payment_method))+'</td><td>'+esc(x.amount||'')+'</td><td style="font-size:13px;color:var(--mute)" dir="ltr">'+esc(x.date)+'</td><td>'+acts+'</td></tr>';
   }).join('');
 }
 async function del(id){
@@ -1447,25 +1495,28 @@ function clearForm(){
 }
 
 /* ==================== الطباعة ==================== */
+var PRINT_COPIES=1;
 function buildPrintCard(p){
   const pa=document.getElementById('printArea');
   pa.setAttribute('dir',LANG==='ar'?'rtl':'ltr');
   const now=new Date();
   const dateText=now.toLocaleDateString(LANG==='ar'?'ar':'en-GB');
   const timeText=now.toLocaleTimeString(LANG==='ar'?'ar':'en-GB',{hour:'2-digit',minute:'2-digit'});
-  pa.innerHTML=
-    '<div class="ph-title">'+esc(t('brand'))+'</div>'+ 
+  const one='<div class="ph-copy">'+
+    '<div class="ph-title">'+esc(t('brand'))+'</div>'+
     '<div class="ph-datetime"><div>'+esc(t('th_date'))+': '+esc(dateText)+'</div><div>'+esc(t('time_label'))+': '+esc(timeText)+'</div></div>'+
+    '<div class="ph-ticket"><div class="ph-ticket-lbl">'+esc(t('ticket_number'))+'</div><div class="ph-ticket-num">'+esc(p.ticket_label||p.ticket_no||p.id||'')+'</div></div>'+
     '<div class="ph-patient"><table>'+
-    '<tr><th>'+esc(t('ticket_number'))+'</th><td>'+esc(p.ticket_no||p.id||'')+'</td></tr>'+  
     '<tr><th>'+esc(t('lbl_name').replace(' *',''))+'</th><td>'+esc(p.name)+'</td></tr>'+
     '<tr><th>'+esc(t('lbl_age'))+'</th><td>'+esc(p.age)+'</td></tr>'+
     '<tr><th>'+esc(t('lbl_gender'))+'</th><td>'+esc(genderLabel(p.gender))+'</td></tr>'+
-    '<tr><th>'+esc(t('lbl_complaint'))+'</th><td>'+esc(p.complaint||'')+'</td></tr>'+ 
-    '<tr><th>'+esc(t('lbl_payment_method'))+'</th><td>'+esc(paymentLabel(p.payment_method))+'</td></tr>'+ 
+    '<tr><th>'+esc(t('lbl_complaint'))+'</th><td>'+esc(p.complaint||'')+'</td></tr>'+
+    '<tr><th>'+esc(t('lbl_payment_method'))+'</th><td>'+esc(paymentLabel(p.payment_method))+'</td></tr>'+
     '<tr><th>'+esc(t('lbl_amount'))+'</th><td>'+esc(p.amount||'')+'</td></tr>'+
     '</table></div>'+
-    '<div class="ph-footer">{ '+esc(t('print_footer'))+' }</div>';
+    '<div class="ph-footer">{ '+esc(t('print_footer'))+' }</div>'+
+    '</div>';
+  pa.innerHTML=new Array(PRINT_COPIES+1).join(one);
 }
 function printPatient(id){
   const p=allPatients.find(function(x){return x.id===id;});
@@ -1489,6 +1540,23 @@ function printForm(){
   });
   document.getElementById('printModal').classList.add('show');
 }
+function printCbc(id){
+  const p=allPatients.find(function(x){return x.id===id;});
+  if(!p)return;
+  if(!p.cbc){showToast(t('cbc_none'),true);return;}
+  window.open('/cbc-print?id='+id,'_blank');
+}
+async function refreshCbcState(){
+  try{
+    if(!ME||!can('view')||document.hidden)return;
+    if(document.getElementById('searchInput').value.trim())return;
+    const j=await api('/api/patients');
+    if(!j||j.status!=='ok')return;
+    const sig=function(a){return a.map(function(x){return x.id+':'+(x.cbc?x.cbc.saved_at:'');}).join('|');};
+    if(sig(j.data||[])!==sig(allPatients)){allPatients=j.data||[];viewPatients=allPatients;renderTable(viewPatients);}
+  }catch(e){}
+}
+setInterval(refreshCbcState,15000);
 function doPrint(){window.print();}
 function closePrint(){document.getElementById('printModal').classList.remove('show');}
 
@@ -1657,6 +1725,661 @@ document.addEventListener('DOMContentLoaded',function(){
 </html>"""
 
 
+# ---------- CBC (المعمل) ----------
+def _cbc(key, label, unit, group, lo, hi, m=None, f=None):
+    d = {"key": key, "label": label, "unit": unit, "group": group, "lo": lo, "hi": hi, "kind": "num"}
+    if m:
+        d["lo_m"], d["hi_m"] = m
+    if f:
+        d["lo_f"], d["hi_f"] = f
+    return d
+
+
+# General adult reference ranges. Confirm with the lab / the analyzer's own ranges.
+CBC_FIELDS = [
+    _cbc("WBC", "WBC", "10³/µL", "wbc", 4.0, 10.0),
+    _cbc("LYM_N", "Lymph#", "10³/µL", "wbc", 0.8, 4.0),
+    _cbc("MID_N", "Mid#", "10³/µL", "wbc", 0.1, 1.5),
+    _cbc("GRA_N", "Gran#", "10³/µL", "wbc", 2.0, 7.0),
+    _cbc("LYM_P", "Lymph%", "%", "wbc", 20.0, 40.0),
+    _cbc("MID_P", "Mid%", "%", "wbc", 3.0, 15.0),
+    _cbc("GRA_P", "Gran%", "%", "wbc", 50.0, 70.0),
+    _cbc("RBC", "RBC", "10⁶/µL", "rbc", 4.0, 5.5, m=(4.5, 5.5), f=(4.0, 5.0)),
+    _cbc("HGB", "HGB", "g/dL", "rbc", 12.0, 17.0, m=(13.0, 17.0), f=(12.0, 16.0)),
+    _cbc("HCT", "HCT", "%", "rbc", 36.0, 54.0, m=(40.0, 54.0), f=(36.0, 48.0)),
+    _cbc("MCV", "MCV", "fL", "rbc", 80.0, 100.0),
+    _cbc("MCH", "MCH", "pg", "rbc", 27.0, 33.0),
+    _cbc("MCHC", "MCHC", "g/dL", "rbc", 32.0, 36.0),
+    _cbc("RDW_CV", "RDW-CV", "%", "rbc", 11.0, 16.0),
+    _cbc("RDW_SD", "RDW-SD", "fL", "rbc", 37.0, 54.0),
+    _cbc("PLT", "PLT", "10³/µL", "plt", 150.0, 450.0),
+    _cbc("MPV", "MPV", "fL", "plt", 6.5, 12.0),
+    _cbc("PDW", "PDW", "fL", "plt", 9.0, 17.0),
+    _cbc("PCT", "PCT", "%", "plt", 0.108, 0.282),
+    _cbc("PLCR", "P-LCR", "%", "plt", 11.0, 45.0),
+    {"key": "MAL_RESULT", "label": "نتيجة الملاريا", "unit": "", "group": "mal", "lo": None, "hi": None, "kind": "text"},
+    {"key": "MAL_SPECIES", "label": "نوع الطفيل", "unit": "", "group": "mal", "lo": None, "hi": None, "kind": "text"},
+    {"key": "MAL_DENSITY", "label": "الكثافة", "unit": "", "group": "mal", "lo": None, "hi": None, "kind": "text"},
+]
+CBC_KIND = {f["key"]: f.get("kind", "num") for f in CBC_FIELDS}
+
+_AR_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+
+
+def _digits_ascii(v):
+    return str(v if v is not None else "").translate(_AR_DIGITS)
+
+
+def normalize_ticket(raw):
+    return _digits_ascii(raw).strip().upper().replace(" ", "")
+
+
+def find_patient_by_ticket(patients, raw):
+    s = normalize_ticket(raw)
+    if not s:
+        return None
+    cands = [s]
+    if s.isdigit():
+        _, letter, _ = _ticket_state()
+        cands = [s + letter, s]
+    for c in cands:
+        matches = [p for p in patients
+                   if (p.get("ticket_label") or str(p.get("ticket_no", ""))).upper() == c]
+        if matches:
+            matches.sort(key=lambda p: (patient_day(p), p.get("id", 0)))
+            return matches[-1]
+    return None
+
+
+def cbc_patient_view(p):
+    return {
+        "id": p.get("id"),
+        "ticket": p.get("ticket_label") or str(p.get("ticket_no", "")),
+        "name": p.get("name", ""),
+        "age": p.get("age", ""),
+        "gender": p.get("gender", ""),
+        "date": p.get("date", ""),
+        "day": patient_day(p),
+        "cbc": p.get("cbc"),
+    }
+
+
+LAB_HTML = r"""<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>المعمل - نتائج CBC</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--text:#1d2433;--mute:#6b7488;--line:#e2e6ee;--accent:#1f7a5c;--head:#f0f3f8;--bad:#b42318;--badbg:#fdecea;--ok:#1f7a5c}
+[data-theme=dark]{--bg:#0f141c;--card:#171e29;--text:#e8ecf3;--mute:#93a0b4;--line:#2a3445;--accent:#3fbf94;--head:#1f2836;--bad:#ff8a80;--badbg:#3a1f1f;--ok:#3fbf94}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",Tahoma,Arial,sans-serif;padding:20px}
+.wrap{max-width:900px;margin:0 auto}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.top h1{margin:0;font-size:24px}
+.sub{color:var(--mute);font-size:13px;margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:10px 18px;font-size:15px;font-family:inherit;cursor:pointer;text-decoration:none}
+.btn:hover{border-color:var(--accent)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.find{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.find label{display:block;font-size:13px;color:var(--mute);margin-bottom:4px}
+.find input{background:var(--bg);color:var(--text);border:2px solid var(--line);border-radius:10px;padding:10px 14px;font-size:26px;font-weight:800;width:170px;text-transform:uppercase;text-align:center;font-family:inherit}
+.find input:focus{outline:none;border-color:var(--accent)}
+.pt{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.pt div small{display:block;color:var(--mute);font-size:12px}
+.pt div b{font-size:17px}
+.pt .tk b{font-size:30px;color:var(--accent)}
+.note{margin-top:10px;padding:8px 12px;border-radius:10px;font-size:13px;background:var(--head)}
+.note.warn{background:var(--badbg);color:var(--bad)}
+table{width:100%;border-collapse:collapse}
+th,td{padding:6px 8px;text-align:start;border-bottom:1px solid var(--line);font-size:14px}
+th{background:var(--head)}
+tr.grp td{background:var(--head);font-weight:800;color:var(--accent)}
+td.u,td.r{color:var(--mute);font-size:13px;white-space:nowrap}
+td.f{width:34px;text-align:center;font-weight:900;font-size:16px}
+td.f.H,td.f.L{color:var(--bad)}
+input.v{width:110px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:16px;font-weight:700;text-align:center;font-family:inherit;direction:ltr}
+input.v:focus{outline:none;border-color:var(--accent)}
+input.v.out{border-color:var(--bad);background:var(--badbg)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+#mbOverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px}
+#mbOverlay .mb-box{background:var(--card,#fff);color:var(--text,#222);border-radius:14px;padding:22px 22px 18px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 50px -20px rgba(0,0,0,.6);border:1px solid var(--line,#e2e6ee)}
+#mbOverlay .mb-icon{font-size:30px;line-height:1;margin-bottom:8px}
+#mbOverlay .mb-title{font-weight:800;font-size:17px;margin-bottom:8px;color:#b42318}
+#mbOverlay .mb-text{font-size:15px;margin-bottom:16px;line-height:1.7;white-space:pre-line}
+#mbOverlay .mb-ok{padding:9px 30px;border:0;border-radius:10px;background:var(--accent,#1f7a5c);color:#fff;font-size:15px;cursor:pointer;font-family:inherit}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;display:none;z-index:9}
+#toast.err{background:#b42318}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>المعمل - نتائج CBC</h1>
+      <div class="sub">مستشفى الشيخ برير الشيخ الصديق</div>
+    </div>
+    <a class="btn" href="/">← الرئيسية</a>
+  </div>
+
+  <div id="denied" class="card hide" style="text-align:center;color:var(--bad)">لا تملك صلاحية دخول صفحة المعمل. اطلب من المدير تفعيل صلاحية «المعمل» لحسابك.</div>
+
+  <div id="main" class="hide">
+    <div class="card">
+      <div class="find">
+        <div>
+          <label for="tk">رقم التذكرة (مثال: 5B)</label>
+          <input id="tk" type="text" autocomplete="off" autofocus maxlength="8">
+        </div>
+        <button class="btn btn-primary" id="btnFind">بحث</button>
+      </div>
+      <div id="ptBox" class="hide" style="margin-top:14px">
+        <div class="pt">
+          <div class="tk"><small>رقم التذكرة</small><b id="pTk"></b></div>
+          <div><small>الاسم</small><b id="pName"></b></div>
+          <div><small>العمر</small><b id="pAge"></b></div>
+          <div><small>الجنس</small><b id="pGender"></b></div>
+          <div><small>تاريخ التسجيل</small><b id="pDate" dir="ltr"></b></div>
+        </div>
+        <div id="pNote" class="note hide"></div>
+      </div>
+    </div>
+
+    <div class="card hide" id="formCard">
+      <table>
+        <thead><tr><th>الفحص</th><th>النتيجة</th><th></th><th>الوحدة</th><th>المدى المرجعي</th></tr></thead>
+        <tbody id="fieldsBody"></tbody>
+      </table>
+      <div class="actions">
+        <button class="btn btn-primary" id="btnSave">💾 حفظ</button>
+        <button class="btn" id="btnPrint">🖨 طباعة (الطابعة الحرارية)</button>
+        <button class="btn" id="btnNew">مريض جديد</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+var CUTOFF=22, FIELDS=[], PT=null, DIRTY=false;
+var GROUPS={wbc:'كريات الدم البيضاء (WBC)',rbc:'كريات الدم الحمراء (RBC)',plt:'الصفائح الدموية (PLT)',mal:'الملاريا (Malaria) - يدوي'};
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function pad(n){return String(n).padStart(2,'0');}
+function fmt(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function todayKey(){var n=new Date();var x=new Date(n.getFullYear(),n.getMonth(),n.getDate());if(n.getHours()>=CUTOFF)x.setDate(x.getDate()+1);return fmt(x);}
+function msgBox(text,title){
+  var o=document.getElementById('mbOverlay');
+  if(!o){
+    o=document.createElement('div');o.id='mbOverlay';
+    o.innerHTML='<div class="mb-box"><div class="mb-icon">&#9888;</div><div class="mb-title"></div><div class="mb-text"></div><button class="mb-ok" type="button">حسناً</button></div>';
+    document.body.appendChild(o);
+    var close=function(){o.style.display='none';};
+    o.querySelector('.mb-ok').onclick=close;
+    o.addEventListener('click',function(e){if(e.target===o)close();});
+    document.addEventListener('keydown',function(e){if(o.style.display==='flex'&&(e.key==='Escape'||e.key==='Enter')){e.preventDefault();close();}});
+  }
+  o.querySelector('.mb-title').textContent=title||'تنبيه';
+  o.querySelector('.mb-text').textContent=String(text||'');
+  o.style.display='flex';
+  setTimeout(function(){var b=o.querySelector('.mb-ok');if(b)b.focus();},50);
+}
+function toast(m,err){if(err){msgBox(m);return;}var t=$('toast');t.textContent=m;t.className=err?'err':'';t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display='none';},3200);}
+function digits(s){return String(s==null?'':s).replace(/[\u0660-\u0669]/g,function(c){return c.charCodeAt(0)-1632;});}
+function numv(s){var x=parseFloat(digits(s).replace(',','.'));return isNaN(x)?null:x;}
+function genderKind(g){g=String(g||'');if(/female|\u0623\u0646\u062b|\u0627\u0646\u062b/i.test(g))return 'f';if(/male|\u0630\u0643\u0631/i.test(g))return 'm';return '';}
+function adult(){var a=numv(PT&&PT.age);return !(a!==null&&a<13);}
+function rangeFor(f){var k=genderKind(PT&&PT.gender),lo=f.lo,hi=f.hi;
+  if(k==='m'&&f.lo_m!=null){lo=f.lo_m;hi=f.hi_m;}
+  if(k==='f'&&f.lo_f!=null){lo=f.lo_f;hi=f.hi_f;}
+  return [lo,hi];}
+function rangeText(f){if(!adult()||f.lo==null)return '-';var r=rangeFor(f);return r[0]+' - '+r[1];}
+function flagFor(f,val){if(!PT||!adult()||f.lo==null)return '';var v=numv(val);if(v===null)return '';var r=rangeFor(f);return v<r[0]?'L':(v>r[1]?'H':'');}
+
+function buildForm(){
+  var html='',last='';
+  FIELDS.forEach(function(f){
+    if(f.group!==last){html+='<tr class="grp"><td colspan="5">'+esc(GROUPS[f.group]||f.group)+'</td></tr>';last=f.group;}
+    html+='<tr data-k="'+esc(f.key)+'"><td><b>'+esc(f.label)+'</b></td>'+
+      '<td><input class="v" type="text" '+(f.kind==='text'?'autocomplete="off" maxlength="40"':'inputmode="decimal" autocomplete="off" maxlength="12"')+' data-kind="'+esc(f.kind||'num')+'" data-key="'+esc(f.key)+'"'+(f.key==='MAL_RESULT'?' list="malList"':'')+'></td>'+
+      '<td class="f"></td><td class="u">'+esc(f.unit)+'</td><td class="r"></td></tr>';
+  });
+  $('fieldsBody').innerHTML=html;
+  if(!$('malList')){var dl=document.createElement('datalist');dl.id='malList';dl.innerHTML='<option value="سلبي"><option value="إيجابي"><option value="غير محدد">';document.body.appendChild(dl);}
+  Array.prototype.forEach.call(document.querySelectorAll('input.v'),function(inp){
+    inp.addEventListener('input',function(){
+      var c=inp.getAttribute('data-kind')==='text'?inp.value:inp.value.replace(/[^0-9\u0660-\u0669.,<>+\-]/g,'');
+      if(c!==inp.value)inp.value=c;
+      DIRTY=true;refreshFlag(inp);
+    });
+    inp.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){e.preventDefault();var all=Array.prototype.slice.call(document.querySelectorAll('input.v'));var i=all.indexOf(inp);if(i<all.length-1)all[i+1].focus();else $('btnSave').focus();}
+    });
+  });
+}
+function refreshFlag(inp){
+  var f=FIELDS.filter(function(x){return x.key===inp.getAttribute('data-key');})[0];
+  var tr=inp.closest('tr'),cell=tr.querySelector('td.f'),fl=flagFor(f,inp.value);
+  cell.textContent=fl;cell.className='f '+fl;inp.classList.toggle('out',!!fl);
+}
+function refreshAll(){
+  Array.prototype.forEach.call(document.querySelectorAll('input.v'),function(inp){
+    var f=FIELDS.filter(function(x){return x.key===inp.getAttribute('data-key');})[0];
+    inp.closest('tr').querySelector('td.r').textContent=rangeText(f);
+    refreshFlag(inp);
+  });
+}
+function fillValues(c){
+  var v=(c&&c.values)||{};
+  Array.prototype.forEach.call(document.querySelectorAll('input.v'),function(inp){inp.value=v[inp.getAttribute('data-key')]||'';});
+  DIRTY=false;refreshAll();
+}
+function showNote(){
+  var n=$('pNote'),msgs=[],warn=false;
+  if(PT.day&&PT.day!==todayKey()){msgs.push('تنبيه: هذا المريض مسجّل بتاريخ '+PT.day+' وليس اليوم.');warn=true;}
+  if(PT.cbc){msgs.push('توجد نتيجة محفوظة ('+(PT.cbc.saved_at||'')+(PT.cbc.saved_by?' - '+PT.cbc.saved_by:'')+'). يمكنك تعديلها ثم الحفظ.');}
+  if(!adult())msgs.push('عمر المريض أقل من 13 سنة: لا تُعرض حدود مرجعية ولا علامات H/L.');
+  n.className='note'+(warn?' warn':'')+(msgs.length?'':' hide');n.innerHTML=msgs.map(esc).join('<br>');
+}
+function setPatient(p){
+  PT=p;
+  $('pTk').textContent=p.ticket;$('pName').textContent=p.name;$('pAge').textContent=p.age||'-';
+  $('pGender').textContent=p.gender||'-';$('pDate').textContent=p.date||'';
+  $('ptBox').classList.remove('hide');$('formCard').classList.remove('hide');
+  showNote();fillValues(p.cbc);
+  var first=document.querySelector('input.v');if(first)first.focus();
+}
+async function loadFields(){
+  try{
+    const j=await (await fetch('/api/lab/lookup?ticket=')).json();
+    if(j.status==='ok'&&j.fields){FIELDS=j.fields;buildForm();refreshAll();}
+    $('formCard').classList.remove('hide');
+  }catch(e){}
+}
+async function find(){
+  var q=$('tk').value.trim();
+  if(!q){msgBox('اكتب رقم التذكرة أولاً ثم اضغط بحث.');return;}
+  if(DIRTY&&!confirm('توجد تعديلات غير محفوظة. متابعة بدون حفظ؟'))return;
+  try{
+    var r=await fetch('/api/lab/lookup?ticket='+encodeURIComponent(q));
+    if(r.status===401){location.href='/';return;}
+    var j=await r.json();
+    if(j.status!=='ok'){toast(j.message||'تعذّر البحث',true);return;}
+    if(!FIELDS.length){FIELDS=j.fields||[];buildForm();}
+    if(!j.patient){toast('لا يوجد مريض بهذا الرقم',true);return;}
+    setPatient(j.patient);
+  }catch(e){toast('تعذّر الاتصال بالسيرفر',true);}
+}
+function collect(){var v={};Array.prototype.forEach.call(document.querySelectorAll('input.v'),function(inp){var s=inp.value.trim();if(s)v[inp.getAttribute('data-key')]=digits(s);});return v;}
+async function save(){
+  if(!PT){msgBox('لم يتم اختيار مريض بعد.\nابحث عن المريض برقم التذكرة أولاً، ثم اكتب النتيجة واحفظ.');return false;}
+  var v=collect();
+  if(!Object.keys(v).length){toast('أدخل قيمة واحدة على الأقل',true);return false;}
+  try{
+    var r=await fetch('/api/lab/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:PT.id,values:v})});
+    var j=await r.json();
+    if(j.status!=='ok'){toast(j.message||'تعذّر الحفظ',true);return false;}
+    PT.cbc=j.patient.cbc;DIRTY=false;showNote();fillValues(PT.cbc);
+    toast('تم حفظ النتيجة');return true;
+  }catch(e){toast('تعذّر الاتصال بالسيرفر',true);return false;}
+}
+async function printIt(){
+  if(!PT){msgBox('لم يتم اختيار مريض بعد.\nابحث عن المريض برقم التذكرة أولاً ثم اضغط طباعة.');return;}
+  if(DIRTY||!PT.cbc){var ok=await save();if(!ok)return;}
+  window.open('/cbc-print?id='+PT.id,'_blank');
+}
+function reset(){
+  if(DIRTY&&!confirm('توجد تعديلات غير محفوظة. متابعة بدون حفظ؟'))return;
+  PT=null;DIRTY=false;$('tk').value='';$('ptBox').classList.add('hide');$('formCard').classList.add('hide');$('tk').focus();
+}
+$('btnFind').onclick=find;
+$('tk').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();find();}});
+$('btnSave').onclick=save;$('btnPrint').onclick=printIt;$('btnNew').onclick=reset;
+window.addEventListener('beforeunload',function(e){if(DIRTY){e.preventDefault();e.returnValue='';}});
+
+(async function init(){
+  try{var s=await (await fetch('/api/settings')).json();if(s&&s.settings&&s.settings.theme)document.documentElement.setAttribute('data-theme',s.settings.theme);}catch(e){}
+  try{
+    var r=await fetch('/api/me');
+    if(r.status===401){location.href='/';return;}
+    var j=await r.json(),u=j.user||{};
+    if(u.role==='admin'||(u.perms&&u.perms.lab)){$('main').classList.remove('hide');loadFields();$('tk').focus();}
+    else $('denied').classList.remove('hide');
+  }catch(e){$('denied').classList.remove('hide');}
+})();
+</script>
+</body>
+</html>
+"""
+
+CBC_PRINT_HTML = r"""<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>نتيجة CBC</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:"Segoe UI",Tahoma,Arial,sans-serif;color:#000;background:#e9ecef}
+.bar{display:flex;gap:8px;justify-content:center;padding:10px}
+.bar button{padding:8px 18px;font-size:14px;border:1px solid #888;border-radius:8px;background:#fff;cursor:pointer;font-family:inherit}
+#rcpt{width:76mm;margin:8px auto;background:#fff;padding:4mm 3mm;font-size:11px;line-height:1.35}
+.c{text-align:center}
+.h1{font-size:14px;font-weight:800}
+.h2{font-size:12px;font-weight:700;margin-top:2px}
+.tk{text-align:center;margin:4px 0 2px}
+.tk small{display:block;font-size:11px;font-weight:700}
+.tk b{font-size:40px;font-weight:900;line-height:1.05}
+hr{border:0;border-top:1px dashed #000;margin:5px 0}
+.pi div{display:flex;justify-content:space-between;gap:6px}
+.pi b{font-weight:700}
+table{width:100%;border-collapse:collapse}
+th{font-size:10px;border-bottom:1px solid #000;padding:2px 1px;text-align:start}
+td{padding:1.5px 1px;font-size:11px;vertical-align:baseline}
+td.v{font-weight:800;font-size:12px;white-space:nowrap}
+td.r{font-size:10px;white-space:nowrap}
+td small{font-size:8.5px;color:#222}
+tr.g td{font-weight:800;font-size:10px;border-top:1px solid #000;padding-top:4px}
+.fl{font-weight:900}
+.foot{font-size:10px;text-align:center;margin-top:4px}
+.msg{text-align:center;padding:30px;font-size:16px}
+@page{size:80mm auto;margin:0}
+@media print{
+  body{background:#fff}
+  .bar{display:none!important}
+  #rcpt{margin:0 auto;width:76mm;padding:3mm 2mm}
+}
+</style>
+</head>
+<body>
+<div class="bar"><button onclick="window.print()">🖨 طباعة</button><button onclick="window.close()">إغلاق</button></div>
+<div id="rcpt"><div class="msg">جارٍ التحميل...</div></div>
+<script>
+var GROUPS={wbc:'كريات الدم البيضاء WBC',rbc:'كريات الدم الحمراء RBC',plt:'الصفائح PLT',mal:'الملاريا Malaria'};
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function digits(s){return String(s==null?'':s).replace(/[\u0660-\u0669]/g,function(c){return c.charCodeAt(0)-1632;});}
+function numv(s){var x=parseFloat(digits(s).replace(',','.'));return isNaN(x)?null:x;}
+function genderKind(g){g=String(g||'');if(/female|\u0623\u0646\u062b|\u0627\u0646\u062b/i.test(g))return 'f';if(/male|\u0630\u0643\u0631/i.test(g))return 'm';return '';}
+function genderText(g){var k=genderKind(g);return k==='m'?'ذكر':(k==='f'?'أنثى':(g||'-'));}
+(async function(){
+  var id=new URLSearchParams(location.search).get('id');
+  var box=$('rcpt');
+  try{
+    var r=await fetch('/api/cbc/get?id='+encodeURIComponent(id||''));
+    if(r.status===401){box.innerHTML='<div class="msg">يجب تسجيل الدخول أولاً</div>';return;}
+    var j=await r.json();
+    if(j.status!=='ok'){box.innerHTML='<div class="msg">'+esc(j.message||'تعذّر التحميل')+'</div>';return;}
+    var p=j.patient,c=p.cbc;
+    if(!c||!c.values){box.innerHTML='<div class="msg">لم يتم إدخال نتيجة للمريض</div>';return;}
+    var age=numv(p.age),isAdult=!(age!==null&&age<13),k=genderKind(p.gender);
+    var rows='',last='';
+    j.fields.forEach(function(f){
+      var val=c.values[f.key];
+      if(val==null||val==='')return;
+      if(f.group!==last){rows+='<tr class="g"><td colspan="3">'+esc(GROUPS[f.group]||f.group)+'</td></tr>';last=f.group;}
+      var lo=f.lo,hi=f.hi;
+      if(k==='m'&&f.lo_m!=null){lo=f.lo_m;hi=f.hi_m;}
+      if(k==='f'&&f.lo_f!=null){lo=f.lo_f;hi=f.hi_f;}
+      var v=numv(val),fl='';
+      if(isAdult&&v!==null)fl=v<lo?'L':(v>hi?'H':'');
+      rows+='<tr><td>'+esc(f.label)+' <small>'+esc(f.unit)+'</small></td><td class="v" dir="ltr">'+esc(val)+(fl?' <span class="fl">'+fl+'</span>':'')+'</td><td class="r" dir="ltr">'+(isAdult&&lo!=null?esc(lo+' - '+hi):'-')+'</td></tr>';
+    });
+    box.innerHTML=
+      '<div class="c h1">مستشفى الشيخ برير الشيخ الصديق</div>'+
+      '<div class="c h2">نتيجة فحص CBC</div><hr>'+
+      '<div class="tk"><small>رقم التذكرة</small><b>'+esc(p.ticket)+'</b></div>'+
+      '<div class="pi"><div><span>الاسم</span><b>'+esc(p.name)+'</b></div>'+
+      '<div><span>العمر</span><b>'+esc(p.age||'-')+'</b></div>'+
+      '<div><span>الجنس</span><b>'+esc(genderText(p.gender))+'</b></div>'+
+      '<div><span>التاريخ</span><b dir="ltr">'+esc(c.saved_at||'')+'</b></div></div><hr>'+
+      '<table><thead><tr><th>الفحص</th><th>النتيجة</th><th>المدى</th></tr></thead><tbody>'+rows+'</tbody></table><hr>'+
+      '<div class="foot">'+(isAdult?'H = أعلى من المدى &nbsp; L = أقل من المدى':'لا توجد حدود مرجعية لمن هم دون 13 سنة')+'</div>'+
+      (c.saved_by?'<div class="foot">الفني: '+esc(c.saved_by)+'</div>':'');
+    setTimeout(function(){window.print();},350);
+  }catch(e){box.innerHTML='<div class="msg">تعذّر الاتصال بالسيرفر</div>';}
+})();
+</script>
+</body>
+</html>
+"""
+
+
+REPORTS_HTML = r"""<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>التقارير - مستشفى الشيخ برير الشيخ الصديق</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--text:#1d2433;--mute:#6b7488;--line:#e2e6ee;--accent:#1f7a5c;--accent2:#e8f5ef;--warn:#b45309;--head:#f0f3f8}
+[data-theme=dark]{--bg:#0f141c;--card:#171e29;--text:#e8ecf3;--mute:#93a0b4;--line:#2a3445;--accent:#3fbf94;--accent2:#14302a;--warn:#f0a94a;--head:#1f2836}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",Tahoma,Arial,sans-serif;padding:20px}
+.wrap{max-width:1100px;margin:0 auto}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.top h1{margin:0;font-size:24px}
+.top .sub{color:var(--mute);font-size:13px;margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:10px;padding:9px 16px;font-size:14px;font-family:inherit;cursor:pointer;text-decoration:none}
+.btn:hover{border-color:var(--accent)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.filters label{display:block;font-size:12px;color:var(--mute);margin-bottom:4px}
+.filters input[type=date]{background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin-inline-start:auto}
+.quick .btn{padding:7px 12px;font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi .l{font-size:13px;color:var(--mute)}
+.kpi .v{font-size:30px;font-weight:800;margin-top:4px;color:var(--accent)}
+.kpi .s{font-size:12px;color:var(--mute);margin-top:2px}
+h2{font-size:17px;margin:0 0 12px}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px 10px;text-align:start;border-bottom:1px solid var(--line);font-size:14px}
+th{background:var(--head);font-weight:700}
+tfoot td{font-weight:800;background:var(--head)}
+.tw{overflow-x:auto}
+.bars{display:flex;align-items:flex-end;gap:6px;height:140px;padding-top:8px}
+.bar{flex:1;min-width:14px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.bar i{display:block;width:100%;background:var(--accent);border-radius:5px 5px 0 0;min-height:2px}
+.bar b{font-size:11px;margin-bottom:2px}
+.bar span{font-size:10px;color:var(--mute);margin-top:4px;direction:ltr}
+.empty{text-align:center;color:var(--mute);padding:24px}
+.only-print{display:none}
+@page{size:A4;margin:0}
+@media print{
+  body{background:#fff;color:#000;padding:12mm}
+  .no-print{display:none!important}
+  .only-print{display:block}
+  .card,.kpi{border:1px solid #999;background:#fff;break-inside:avoid}
+  .kpi .v{color:#000}
+  th{background:#eee!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  tfoot td{background:#eee!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .bar i{background:#555!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .tw{overflow:visible}
+  tr{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top no-print">
+    <div>
+      <h1>التقارير اليومية</h1>
+      <div class="sub">مستشفى الشيخ برير الشيخ الصديق</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="window.print()">🖨 طباعة التقرير</button>
+      <a class="btn" href="/">← الرئيسية</a>
+    </div>
+  </div>
+
+  <div class="card filters no-print">
+    <div><label for="fFrom">من تاريخ</label><input type="date" id="fFrom"></div>
+    <div><label for="fTo">إلى تاريخ</label><input type="date" id="fTo"></div>
+    <button class="btn btn-primary" onclick="applyRange()">عرض</button>
+    <div class="quick">
+      <button class="btn" onclick="quick('today')">اليوم</button>
+      <button class="btn" onclick="quick('yesterday')">أمس</button>
+      <button class="btn" onclick="quick('week')">آخر 7 أيام</button>
+      <button class="btn" onclick="quick('month')">هذا الشهر</button>
+    </div>
+  </div>
+
+  <div class="only-print" style="text-align:center;margin-bottom:12px">
+    <div style="font-size:22px;font-weight:800">مستشفى الشيخ برير الشيخ الصديق</div>
+    <div id="pTitle" style="font-size:16px;margin-top:4px"></div>
+    <div id="pStamp" style="font-size:12px;color:#444;margin-top:2px"></div>
+  </div>
+
+  <div id="rptTitle" class="no-print" style="font-weight:700;margin-bottom:10px"></div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card" id="daysCard" style="display:none">
+    <h2>ملخص الأيام</h2>
+    <div class="bars" id="bars"></div>
+    <div class="tw" style="margin-top:12px"><table>
+      <thead><tr><th>اليوم</th><th>عدد المرضى</th><th>نقدي</th><th>تحويل</th><th>الإجمالي</th></tr></thead>
+      <tbody id="daysBody"></tbody>
+      <tfoot id="daysFoot"></tfoot>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h2>تفاصيل المرضى</h2>
+    <div class="tw"><table>
+      <thead><tr><th>رقم التذكرة</th><th>اليوم</th><th>الوقت</th><th>الاسم</th><th>العمر</th><th>الجنس</th><th>الشكوى</th><th>الدفع</th><th>المبلغ</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <div class="empty" id="emptyMsg" style="display:none">لا توجد بيانات في هذه الفترة</div>
+  </div>
+</div>
+
+<script>
+var CUTOFF=22; /* اليوم الجديد يبدأ الساعة 10 مساء */
+var ALL=[];
+function pad(n){return String(n).padStart(2,'0');}
+function fmt(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function todayKey(){var n=new Date();var x=new Date(n.getFullYear(),n.getMonth(),n.getDate());if(n.getHours()>=CUTOFF)x.setDate(x.getDate()+1);return fmt(x);}
+function addDays(key,n){var p=key.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]);d.setDate(d.getDate()+n);return fmt(d);}
+function patientDay(p){
+  if(p.day)return p.day;
+  var m=/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}))?/.exec(p.date||'');
+  if(!m)return '';
+  var x=new Date(+m[1],+m[2]-1,+m[3]);
+  if(m[4]&&+m[4]>=CUTOFF)x.setDate(x.getDate()+1);
+  return fmt(x);
+}
+function num(v){
+  var s=String(v==null?'':v).replace(/[\u0660-\u0669]/g,function(c){return c.charCodeAt(0)-1632;}).replace(/[^\d.]/g,'');
+  var n=parseFloat(s);return isNaN(n)?0:n;
+}
+function tk(p){return p.ticket_label||p.ticket_no||p.id;}
+function money(n){return (Math.round(n*100)/100).toLocaleString('en-US');}
+function payKind(p){return p.payment_method==='cash'?'cash':(p.payment_method==='transfer'?'transfer':'other');}
+function payLabel(p){return p.payment_method==='cash'?'نقدي':(p.payment_method==='transfer'?'تحويل':(p.payment_method||''));}
+function genderKind(g){g=String(g||'');if(/female|\u0623\u0646\u062b|\u0627\u0646\u062b/i.test(g))return 'f';if(/male|\u0630\u0643\u0631/i.test(g))return 'm';return '';}
+
+function setRange(from,to){document.getElementById('fFrom').value=from;document.getElementById('fTo').value=to;applyRange();}
+function quick(k){
+  var t=todayKey();
+  if(k==='today')setRange(t,t);
+  else if(k==='yesterday'){var y=addDays(t,-1);setRange(y,y);}
+  else if(k==='week')setRange(addDays(t,-6),t);
+  else if(k==='month')setRange(t.slice(0,8)+'01',t);
+}
+function applyRange(){
+  var from=document.getElementById('fFrom').value,to=document.getElementById('fTo').value;
+  if(!from&&!to){var t=todayKey();from=to=t;}
+  if(!from)from=to;if(!to)to=from;
+  if(from>to){var x=from;from=to;to=x;}
+  document.getElementById('fFrom').value=from;document.getElementById('fTo').value=to;
+  render(from,to);
+}
+function kpi(l,v,s){return '<div class="kpi"><div class="l">'+l+'</div><div class="v">'+v+'</div>'+(s?'<div class="s">'+s+'</div>':'')+'</div>';}
+
+function render(from,to){
+  var list=ALL.filter(function(p){var d=patientDay(p);return d>=from&&d<=to;});
+  list.sort(function(a,b){var da=patientDay(a),db=patientDay(b);if(da!==db)return da<db?-1:1;return (+a.ticket_no||+a.id||0)-(+b.ticket_no||+b.id||0);});
+  var single=(from===to);
+  var title=single?('تقرير يوم '+from):('تقرير من '+from+' إلى '+to);
+  document.getElementById('rptTitle').textContent=title;
+  document.getElementById('pTitle').textContent=title;
+  document.getElementById('pStamp').textContent='تاريخ الطباعة: '+new Date().toLocaleString('en-GB');
+
+  var tot={n:0,sum:0,cash:{n:0,s:0},tr:{n:0,s:0},oth:{n:0,s:0},m:0,f:0},days={};
+  list.forEach(function(p){
+    var a=num(p.amount),k=payKind(p),d=patientDay(p);
+    tot.n++;tot.sum+=a;
+    var slot=k==='cash'?tot.cash:(k==='transfer'?tot.tr:tot.oth);slot.n++;slot.s+=a;
+    var g=genderKind(p.gender);if(g==='m')tot.m++;else if(g==='f')tot.f++;
+    var o=days[d]||(days[d]={n:0,cash:0,tr:0,sum:0});
+    o.n++;o.sum+=a;if(k==='cash')o.cash+=a;else if(k==='transfer')o.tr+=a;
+  });
+
+  var firstT=list.length?tk(list[0]):'-',lastT=list.length?tk(list[list.length-1]):'-';
+  var k=kpi('عدد المرضى',tot.n,single?('من تذكرة '+esc(firstT)+' إلى '+esc(lastT)):'')
+    +kpi('إجمالي المبالغ',money(tot.sum))
+    +kpi('نقدي',money(tot.cash.s),tot.cash.n+' مريض')
+    +kpi('تحويل',money(tot.tr.s),tot.tr.n+' مريض')
+    +kpi('ذكور',tot.m)+kpi('إناث',tot.f);
+  if(tot.oth.n)k+=kpi('طريقة أخرى / غير محددة',money(tot.oth.s),tot.oth.n+' مريض');
+  document.getElementById('kpis').innerHTML=k;
+
+  var keys=Object.keys(days).sort();
+  var dc=document.getElementById('daysCard');
+  if(!single&&keys.length){
+    dc.style.display='block';
+    var max=Math.max.apply(null,keys.map(function(d){return days[d].n;}))||1;
+    document.getElementById('bars').innerHTML=keys.map(function(d){
+      return '<div class="bar" title="'+esc(d)+'"><b>'+days[d].n+'</b><i style="height:'+Math.max(2,Math.round(days[d].n/max*100))+'px"></i><span>'+esc(d.slice(5))+'</span></div>';
+    }).join('');
+    document.getElementById('daysBody').innerHTML=keys.map(function(d){
+      var o=days[d];return '<tr><td dir="ltr" style="text-align:right">'+esc(d)+'</td><td>'+o.n+'</td><td>'+money(o.cash)+'</td><td>'+money(o.tr)+'</td><td><b>'+money(o.sum)+'</b></td></tr>';
+    }).join('');
+    document.getElementById('daysFoot').innerHTML='<tr><td>الإجمالي</td><td>'+tot.n+'</td><td>'+money(tot.cash.s)+'</td><td>'+money(tot.tr.s)+'</td><td>'+money(tot.sum)+'</td></tr>';
+  }else dc.style.display='none';
+
+  document.getElementById('emptyMsg').style.display=list.length?'none':'block';
+  document.getElementById('rows').innerHTML=list.map(function(p){
+    return '<tr><td><b>'+esc(tk(p))+'</b></td><td dir="ltr" style="text-align:right">'+esc(patientDay(p))+'</td><td dir="ltr" style="text-align:right">'+esc(String(p.date||'').slice(11,16))+'</td><td>'+esc(p.name)+'</td><td>'+esc(p.age)+'</td><td>'+esc(p.gender)+'</td><td>'+esc(p.complaint||'')+'</td><td>'+esc(payLabel(p))+'</td><td>'+esc(p.amount||'')+'</td></tr>';
+  }).join('');
+}
+
+async function init(){
+  try{var s=await (await fetch('/api/settings')).json();if(s&&s.settings&&s.settings.theme)document.documentElement.setAttribute('data-theme',s.settings.theme);}catch(e){}
+  try{
+    var r=await fetch('/api/patients');
+    if(r.status===401){location.href='/';return;}
+    var j=await r.json();
+    if(j.status!=='ok'){document.getElementById('rptTitle').textContent='لا تملك صلاحية عرض التقارير';return;}
+    ALL=j.data||[];
+  }catch(e){document.getElementById('rptTitle').textContent='تعذّر تحميل البيانات';return;}
+  quick('today');
+}
+init();
+</script>
+</body>
+</html>
+"""
+
+
+BANNER_FILES = {
+    "/brand-left.jpg": ("left_man.jpg", "image/jpeg"),
+    "/brand-right.jpg": ("right_man.jpg", "image/jpeg"),
+    "/brand-name.png": ("name.png", "image/png"),
+}
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -1716,8 +2439,27 @@ class Handler(BaseHTTPRequestHandler):
         if admin and user.get("role") != "admin":
             self._err("admin_only", "هذه العملية للمدير فقط", 403)
             return None
-        if perm and not user.get("perms", {}).get(perm):
+        if perm and user.get("role") != "admin" and not user.get("perms", {}).get(perm):
             self._err("perm_denied", "لا تملك صلاحية لهذه العملية", 403)
+            return None
+        return user
+
+    def _page(self, html):
+        body = html.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def guard_lab(self):
+        user = self.current_user()
+        if not user:
+            self._err("login_required", "يجب تسجيل الدخول", 401)
+            return None
+        if user.get("role") != "admin" and not user.get("perms", {}).get("lab"):
+            self._err("perm_denied", "لا تملك صلاحية المعمل", 403)
             return None
         return user
 
@@ -1728,6 +2470,71 @@ class Handler(BaseHTTPRequestHandler):
 
         if path in ("/", "/index.html"):
             body = HTML_CONTENT.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        if path in BANNER_FILES:
+            fname, ctype = BANNER_FILES[path]
+            fpath = os.path.join(APP_DIR, fname)
+            if not os.path.exists(fpath):
+                self.send_response(404)
+                self.end_headers()
+                return
+            with open(fpath, "rb") as fh:
+                body = fh.read()
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "public, max-age=86400")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
+        if path == "/lab":
+            self._page(LAB_HTML)
+            return
+
+        if path == "/cbc-print":
+            self._page(CBC_PRINT_HTML)
+            return
+
+        if path == "/api/lab/lookup":
+            if not self.guard_lab():
+                return
+            raw = unquote(parse_qs(parsed.query).get("ticket", [""])[0])
+            p = find_patient_by_ticket(load_patients(), raw)
+            self._json({"status": "ok", "patient": cbc_patient_view(p) if p else None,
+                        "fields": CBC_FIELDS})
+            return
+
+        if path == "/api/cbc/get":
+            user = self.current_user()
+            if not user:
+                self._err("login_required", "يجب تسجيل الدخول", 401)
+                return
+            perms = user.get("perms", {})
+            if user.get("role") != "admin" and not (perms.get("view") or perms.get("print") or perms.get("lab")):
+                self._err("perm_denied", "لا تملك صلاحية لهذه العملية", 403)
+                return
+            try:
+                pid = int(parse_qs(parsed.query).get("id", [""])[0])
+            except ValueError:
+                self._err("not_found", "غير موجود", 400)
+                return
+            p = next((x for x in load_patients() if x.get("id") == pid), None)
+            if not p:
+                self._err("not_found", "غير موجود", 404)
+                return
+            self._json({"status": "ok", "patient": cbc_patient_view(p), "fields": CBC_FIELDS})
+            return
+
+        if path == "/reports":
+            body = REPORTS_HTML.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
@@ -1774,7 +2581,7 @@ class Handler(BaseHTTPRequestHandler):
             results = [p for p in patients if q in " ".join([
                 str(p.get("name", "")), str(p.get("age", "")),
                 str(p.get("gender", "")), str(p.get("complaint", "")),
-                str(p.get("date", "")),
+                str(p.get("date", "")), str(p.get("ticket_label", "")),
             ]).lower()]
             self._json({"status": "ok", "data": results, "count": len(results)})
             return
@@ -1807,7 +2614,7 @@ class Handler(BaseHTTPRequestHandler):
                 payment = p.get("payment_method", "")
                 if lang == "en":
                     payment = "Cash" if payment == "cash" else ("Transfer" if payment == "transfer" else payment)
-                row = [str(p.get("ticket_no", p.get("id", ""))), p.get("name", ""), p.get("age", ""),
+                row = [str(p.get("ticket_label") or p.get("ticket_no", p.get("id", ""))), p.get("name", ""), p.get("age", ""),
                        g, p.get("complaint", ""), payment, p.get("amount", ""), p.get("date", "")]
                 lines.append(",".join('"%s"' % str(c).replace('"', '""') for c in row))
             body = ("\ufeff" + "\r\n".join(lines)).encode("utf-8")
@@ -1843,7 +2650,7 @@ class Handler(BaseHTTPRequestHandler):
                 payment = p.get("payment_method", "")
                 if lang == "en":
                     payment = "Cash" if payment == "cash" else ("Transfer" if payment == "transfer" else payment)
-                row = [str(p.get("ticket_no", p.get("id", ""))), p.get("name", ""), p.get("age", ""),
+                row = [str(p.get("ticket_label") or p.get("ticket_no", p.get("id", ""))), p.get("name", ""), p.get("age", ""),
                        g, p.get("complaint", ""), payment, p.get("amount", ""), p.get("date", "")]
                 lines.append(",".join('"%s"' % str(c).replace('"', '""') for c in row))
             body = ("\ufeff" + "\r\n".join(lines)).encode("utf-8")
@@ -1928,9 +2735,12 @@ class Handler(BaseHTTPRequestHandler):
                 self._err("name_required", "الاسم مطلوب", 400)
                 return
             patients = load_patients()
+            t_no, t_letter = allocate_ticket(patients)
             patient = {
                 "id": next_id(patients),
-                "ticket_no": allocate_ticket_number(patients),
+                "ticket_no": t_no,
+                "ticket_letter": t_letter,
+                "ticket_label": "%d%s" % (t_no, t_letter),
                 "name": name,
                 "age": str(body.get("age", "")).strip(),
                 "gender": str(body.get("gender", "")).strip(),
@@ -1938,12 +2748,65 @@ class Handler(BaseHTTPRequestHandler):
                 "payment_method": str(body.get("payment_method", "")).strip(),
                 "amount": str(body.get("amount", "")).strip(),
                 "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "day": business_day(),
             }
             patients.append(patient)
             save_patients(patients)
             touch_last_edit()
             self._json({"status": "ok", "message": "تم حفظ بيانات المريض", "data": patient,
                         "last_edit": load_settings().get("last_edit", "")})
+            return
+
+        if path == "/api/lab/save":
+            user = self.guard_lab()
+            if not user:
+                return
+            body = self._read_body() or {}
+            try:
+                pid = int(body.get("id"))
+            except (TypeError, ValueError):
+                self._err("not_found", "غير موجود", 400)
+                return
+            vals_in = body.get("values")
+            if not isinstance(vals_in, dict):
+                self._err("no_values", "لم يتم إدخال أي قيمة", 400)
+                return
+            allowed = {f["key"] for f in CBC_FIELDS}
+            vals = {}
+            for k, v in vals_in.items():
+                if k not in allowed:
+                    continue
+                kind = CBC_KIND.get(k, "num")
+                s = _digits_ascii(v).strip()[:(40 if kind == "text" else 12)]
+                if not s:
+                    continue
+                if kind != "text" and not re.match(r"^[0-9.,<>+-]+$", s):
+                    self._err("bad_value", "قيمة غير صالحة في الحقل " + str(k), 400)
+                    return
+                vals[k] = s
+            if not vals:
+                self._err("no_values", "لم يتم إدخال أي قيمة", 400)
+                return
+            patients = load_patients()
+            target = None
+            for p in patients:
+                if p.get("id") == pid:
+                    target = p
+                    break
+            if target is None:
+                self._err("not_found", "غير موجود", 404)
+                return
+            now = datetime.now().strftime("%Y-%m-%d %H:%M")
+            old = target.get("cbc") or {}
+            target["cbc"] = {
+                "values": vals,
+                "saved_at": now,
+                "first_saved_at": old.get("first_saved_at") or now,
+                "saved_by": user.get("name") or user.get("username", ""),
+            }
+            save_patients(patients)
+            touch_last_edit()
+            self._json({"status": "ok", "message": "تم حفظ النتيجة", "patient": cbc_patient_view(target)})
             return
 
         if path.startswith("/api/delete/"):
@@ -2029,31 +2892,6 @@ class Handler(BaseHTTPRequestHandler):
             save_patients(data)
             touch_last_edit()
             self._json({"status": "ok", "message": "تمت الاستعادة", "count": len(data)})
-            return
-
-        # ---------- Lab page: content available only to users with the lab permission ----------
-        if path == "/api/lab":
-            if not self.guard(admin=True):
-                return
-            body = self._read_body() or {}
-            token = self._session_token()
-            user = self.current_user()
-            req = body.get("request") or {}
-            rid = str(req.get("roomId", "")).strip()
-            status = req.get("status", "")
-            if rid and status == "granted":
-                if user and user.get("role") == "admin":
-                    lab_requests = load_requests()
-                    if rid in lab_requests:
-                        del lab_requests[rid]
-                        save_requests(lab_requests)
-                    self._json({"status": "ok", "granted": True})
-                    return
-            if user and user.get("perms", {}).get("lab"):
-                self._json({"status": "ok", "allowed": True,
-                            "content": load_lab_content()})
-                return
-            self._json({"status": "denied", "message": t("e_no_lab_access")}, 403)
             return
 
         if path == "/api/users":
@@ -2340,84 +3178,6 @@ def main():
         server.serve_forever()
     except KeyboardInterrupt:
         server.shutdown()
-
-
-# ---------- Lab page content (admin-only API, plain text reports) ----------
-
-def ensure_requests_file():
-    path = os.path.join(APP_DIR, "lab_requests.json")
-    if not os.path.exists(path):
-        _atomic_write(path, json.dumps({}, ensure_ascii=False, indent=2))
-    return path
-
-
-def load_requests():
-    ensure_requests_file()
-    try:
-        data = _read_json(load_requests.path)
-        if not isinstance(data, dict):
-            return {}
-        return data
-    except Exception:
-        return {}
-
-
-load_requests.path = ensure_requests_file()
-
-
-def save_requests(reqs):
-    _atomic_write(load_requests.path, json.dumps(reqs, ensure_ascii=False, indent=2))
-
-
-LAP_DIR = os.path.join(APP_DIR, "lab")
-
-
-def ensure_lab_dir():
-    os.makedirs(LAP_DIR, exist_ok=True)
-    try:
-        _prune("lab_", 8)
-    except Exception:
-        pass
-
-
-def load_lab_content():
-    """يقرأ ملفات المحتوى السليمة من مجلد lab/ (مملوكة للمدير فقط)"""
-    ensure_lab_dir()
-    items = []
-    try:
-        files = sorted(os.listdir(LAP_DIR))
-    except OSError:
-        return items
-    for fn in files:
-        if not fn.endswith(".lab"):
-            continue
-        p = os.path.join(LAP_DIR, fn)
-        try:
-            raw = open(p, encoding="utf-8").read()
-        except Exception:
-            continue
-        items.append({"name": fn, "content": raw})
-    return items
-
-
-def add_lab_content(name, content):
-    ensure_lab_dir()
-    if not name.lower().endswith(".lab"):
-        name = name + ".lab"
-    p = os.path.join(LAP_DIR, name)
-    _atomic_write(p, content)
-    return name
-
-
-def delete_lab_content(name):
-    ensure_lab_dir()
-    if not name.lower().endswith(".lab"):
-        name = name + ".lab"
-    p = os.path.join(LAP_DIR, name)
-    if os.path.exists(p):
-        os.remove(p)
-        return True
-    return False
 
 
 if __name__ == "__main__":
