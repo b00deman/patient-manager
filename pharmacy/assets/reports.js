@@ -7,7 +7,7 @@
   var tab = "sales", from = "", to = "";
 
   function el(id) { return document.getElementById(id); }
-  function cur() { return PH.esc((PH.config || {}).currency || "ر.س"); }
+  function cur() { return PH.esc((PH.config || {}).currency || "جنيه سوداني"); }
   function inRange(ts) {
     var d = String(ts || "").slice(0, 10);
     if (from && d < from) return false;

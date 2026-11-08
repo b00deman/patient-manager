@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>صيدلية بدوي — المخزون والمشتريات</title>
+<title>صيدلية الشيخ برير الشيخ الصديق — المخزون والمشتريات</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lalezar&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -37,7 +37,7 @@ try{var _p=JSON.parse(localStorage.getItem('ph_prefs')||'{}');
     <div class="form-group" style="margin-bottom:12px">
       <label data-i18n="inv_barcode_label">باركود الدواء</label>
       <input type="text" id="invBarcode" class="barcode-input" autocomplete="off"
-             data-i18n-ph="inv_barcode_ph" placeholder="امسح الباركود هنا…">
+             data-i18n-ph="inv_barcode_ph" placeholder="امسح أو اكتب الرقم، أو اتركه فارغاً للإدخال اليدوي…">
     </div>
     <div class="btn-row" style="margin-top:0;margin-bottom:14px">
       <button class="btn btn-secondary" id="decodeBtn" data-i18n="decode_btn">ترجمة الباركود</button>
@@ -46,9 +46,9 @@ try{var _p=JSON.parse(localStorage.getItem('ph_prefs')||'{}');
     <div class="decode-box" id="invDecodeBox" hidden></div>
     <div class="form-grid three">
       <div class="form-group"><label data-i18n="drug_name">اسم الدواء</label><input id="fName" autocomplete="off"></div>
-      <div class="form-group"><label data-i18n="cost_price">سعر الشراء</label><input id="fCost" type="number" min="0" step="0.01" value="0"></div>
-      <div class="form-group"><label data-i18n="sell_price">سعر البيع</label><input id="fSell" type="number" min="0" step="0.01" value="0"></div>
-      <div class="form-group"><label data-i18n="qty_bought">الكمية المشتراة (عبوات)</label><input id="fQty" type="number" min="1" step="1" value="1"></div>
+      <div class="form-group"><label data-i18n="cost_price">سعر الشراء</label><input id="fCost" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="form-group"><label data-i18n="sell_price">سعر البيع</label><input id="fSell" type="number" min="0" step="0.01" placeholder="0.00"></div>
+      <div class="form-group"><label data-i18n="qty_bought">الكمية المشتراة (عبوات)</label><input id="fQty" type="number" min="1" step="1"></div>
       <div class="form-group"><label data-i18n="expiry">تاريخ الصلاحية</label><input id="fExpiry" type="date"></div>
       <div class="form-group"><label data-i18n="supplier">المورد</label><input id="fSupplier" autocomplete="off"></div>
       <div class="form-group"><label data-i18n="note">ملاحظة</label><input id="fNote" autocomplete="off"></div>
@@ -103,7 +103,6 @@ try{var _p=JSON.parse(localStorage.getItem('ph_prefs')||'{}');
       <div class="form-group"><label data-i18n="pharmacy_name_lbl">اسم الصيدلية (على الإيصال)</label><input id="sName"></div>
       <div class="form-group"><label data-i18n="pharmacy_sub_lbl">العنوان / السطر الثاني</label><input id="sSub"></div>
       <div class="form-group"><label data-i18n="currency_lbl">العملة</label><input id="sCur"></div>
-      <div class="form-group"><label data-i18n="vat_lbl">ضريبة القيمة المضافة %</label><input id="sVat" type="number" min="0" max="100" step="0.5"></div>
       <div class="form-group"><label data-i18n="low_stock_lbl">حد التنبيه (عبوات)</label><input id="sLow" type="number" min="1" step="1"></div>
     </div>
     <div class="btn-row">

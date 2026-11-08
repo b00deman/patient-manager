@@ -8,7 +8,7 @@
 
   function el(id) { return document.getElementById(id); }
   function isAdmin() { return PH.user && PH.user.role === "admin"; }
-  function cur() { return PH.esc((PH.config || {}).currency || "ر.س"); }
+  function cur() { return PH.esc((PH.config || {}).currency || "جنيه سوداني"); }
   function threshold() { return Number((PH.config || {}).low_stock) || 15; }
 
   function statusOf(d) {
@@ -78,7 +78,7 @@
       ? '<br><span class="badge badge-info">موجود مسبقاً: ' + PH.esc(drug.name) +
         ' — ' + PH.money(drug.sell_price) + ' ' + cur() + ' — ' + PH.esc(drug.qty) + ' عبوة</span>' +
         '<br><span class="muted">الحقول عُبّئت تلقائياً، والكمية المكتوبة ستُضاف للرصيد الحالي.</span>'
-      : '<br><span class="badge badge-ok">باركود جديد — اكتب بيانات الدواء بالأسفل.</span>';
+      : '<br><span class="badge badge-ok">باركود جديد — اكتب بيانات الدواء بالأسفل. ويمكن تركه فارغاً لتوليد رقم داخلي.</span>';
     box.innerHTML = '<div style="font-weight:800;margin-bottom:4px">' + PH.t("decode_title") + '</div>' +
       '<span class="kv">🔢 <b class="mono">' + PH.esc(dec.code) + '</b></span>' +
       '<span class="kv">🏷️ <b>' + PH.esc(dec.type) + '</b></span>' +
@@ -92,6 +92,8 @@
       var r = await PH.api("/api/lookup?barcode=" + encodeURIComponent(code));
       showDecode(r.decode, r.drug);
       if (fill !== false) {
+        var lockDetails = !!(r.drug && !isAdmin());
+        ["fName", "fCost", "fSell", "fExpiry", "fSupplier"].forEach(function (id) { el(id).readOnly = lockDetails; });
         if (r.drug) {
           el("fName").value = r.drug.name || "";
           el("fCost").value = PH.money(r.drug.cost_price);
@@ -99,8 +101,8 @@
           el("fExpiry").value = r.drug.expiry || "";
           el("fSupplier").value = r.drug.supplier || "";
         } else {
+          ["fName", "fCost", "fSell", "fExpiry", "fSupplier"].forEach(function (id) { el(id).readOnly = false; });
           ["fName", "fCost", "fSell", "fExpiry", "fSupplier"].forEach(function (id) { el(id).value = ""; });
-          el("fCost").value = "0"; el("fSell").value = "0";
         }
         el("fQty").value = "1";
         el("fName").focus();
@@ -110,14 +112,13 @@
 
   function clearPurchase() {
     ["invBarcode", "fName", "fCost", "fSell", "fQty", "fExpiry", "fSupplier", "fNote"].forEach(function (id) { el(id).value = ""; });
-    el("fCost").value = "0"; el("fSell").value = "0"; el("fQty").value = "1";
+    ["fName", "fCost", "fSell", "fExpiry", "fSupplier"].forEach(function (id) { el(id).readOnly = false; });
     el("invDecodeBox").hidden = true;
     el("invBarcode").focus();
   }
 
   async function savePurchase() {
     var code = el("invBarcode").value.trim();
-    if (!code) { PH.toast("امسح الباركود أولاً", true); el("invBarcode").focus(); return; }
     var body = {
       barcode: code, name: el("fName").value.trim(),
       cost_price: Number(el("fCost").value || 0), sell_price: Number(el("fSell").value || 0),
@@ -125,8 +126,8 @@
       supplier: el("fSupplier").value.trim(), note: el("fNote").value.trim()
     };
     try {
-      await PH.api("/api/purchase", {method:"POST", body:body});
-      PH.toast(PH.t("save_ok") + " — " + body.name);
+      var result = await PH.api("/api/purchase", {method:"POST", body:body});
+      PH.toast(PH.t("save_ok") + " — " + body.name + " — " + (result.drug.barcode || code));
       clearPurchase();
       await loadDrugs();
       PH.checkAlerts(true);
@@ -194,8 +195,7 @@
     var c = PH.config || {};
     el("sName").value = c.pharmacy_name || "";
     el("sSub").value = c.pharmacy_sub || "";
-    el("sCur").value = c.currency || "ر.س";
-    el("sVat").value = c.vat_percent || 0;
+    el("sCur").value = c.currency || "جنيه سوداني";
     el("sLow").value = c.low_stock || 15;
   }
 
@@ -211,21 +211,25 @@
 
   document.addEventListener("ph:ready", async function () {
     if (!isAdmin()) {
-      ["entryCard", "usersCard", "settingsCard"].forEach(function (id) { el(id).hidden = true; });
+      ["usersCard", "settingsCard"].forEach(function (id) { el(id).hidden = true; });
       el("lockedBanner").style.display = "flex";
     }
     await loadDrugs();
 
+    el("invBarcode").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); if (this.value.trim()) decode(this.value); else el("fName").focus(); }
+    });
+    el("decodeBtn").addEventListener("click", function () {
+      if (el("invBarcode").value.trim()) decode(el("invBarcode").value);
+      else { el("invDecodeBox").hidden = true; el("fName").focus(); }
+    });
+    el("savePurchase").addEventListener("click", savePurchase);
+    el("resetPurchase").addEventListener("click", clearPurchase);
+    el("invCameraBtn").addEventListener("click", function () {
+      PH.openCamera(function (code) { el("invBarcode").value = code; decode(code); });
+    });
+
     if (isAdmin()) {
-      el("invBarcode").addEventListener("keydown", function (e) {
-        if (e.key === "Enter") { e.preventDefault(); decode(this.value); }
-      });
-      el("decodeBtn").addEventListener("click", function () { decode(el("invBarcode").value); });
-      el("invCameraBtn").addEventListener("click", function () {
-        PH.openCamera(function (code) { el("invBarcode").value = code; decode(code); });
-      });
-      el("savePurchase").addEventListener("click", savePurchase);
-      el("resetPurchase").addEventListener("click", clearPurchase);
 
       el("stockSearch").addEventListener("input", function () { search = this.value; renderStock(); });
       el("stockBody").addEventListener("click", async function (e) {
@@ -281,7 +285,7 @@
         try {
           var r = await PH.api("/api/settings/update", {method:"POST", body:{
             pharmacy_name:el("sName").value, pharmacy_sub:el("sSub").value,
-            currency:el("sCur").value, vat_percent:Number(el("sVat").value || 0),
+            currency:el("sCur").value, vat_percent:0,
             low_stock:Number(el("sLow").value || 15)
           }});
           PH.config = Object.assign(PH.config || {}, r.config);

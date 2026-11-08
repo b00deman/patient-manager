@@ -6,13 +6,16 @@
   "use strict";
 
   var I18N = {
-    brand: {ar:"صيدلية بدوي", en:"Badawi Pharmacy"},
+    brand: {ar:"صيدلية الشيخ برير الشيخ الصديق", en:"Al Sheikh Brer Al Sheikh Alsiddiq Pharmacy"},
     brand_sub: {ar:"نظام البيع والشراء والمخزون", en:"POS, Purchases & Inventory"},
-    login_title: {ar:"صيدلية بدوي", en:"Badawi Pharmacy"},
+    login_title: {ar:"صيدلية الشيخ برير الشيخ الصديق", en:"Al Sheikh Brer Al Sheikh Alsiddiq Pharmacy"},
     login_sub: {ar:"سجّل الدخول للمتابعة", en:"Sign in to continue"},
     login_user: {ar:"اسم المستخدم", en:"Username"},
     login_pass: {ar:"كلمة المرور", en:"Password"},
     login_btn: {ar:"دخول", en:"Sign in"},
+    show_password: {ar:"إظهار", en:"Show"},
+    hide_password: {ar:"إخفاء", en:"Hide"},
+    remember_me: {ar:"تذكرني", en:"Remember me"},
     ph_user: {ar:"اسم المستخدم", en:"username"},
     ph_pass: {ar:"كلمة المرور", en:"password"},
     theme_tip: {ar:"تبديل الوضع الفاتح/الداكن", en:"Toggle theme"},
@@ -25,11 +28,16 @@
     nav_inventory: {ar:"📦 المخزون والمشتريات", en:"📦 Inventory"},
     nav_reports: {ar:"📊 التقارير", en:"📊 Reports"},
     nav_locked: {ar:"لا صلاحية", en:"No permission"},
-    alert_prefix: {ar:"⚠️ أدوية قاربت على النفاد (أقل من", en:"⚠️ Low stock (below"},
+    alert_prefix: {ar:"⚠️ تنبيهات المخزون والصلاحية", en:"⚠️ Stock and expiry alerts"},
     alert_suffix: {ar:"عبوة)", en:"packs)"},
     alert_btn: {ar:"عرض التفاصيل", en:"Show details"},
-    msg_title: {ar:"⚠️ تنبيه المخزون", en:"⚠️ Stock alert"},
-    msg_text: {ar:"الأدوية التالية كميتها أقل من الحد المسموح، يرجى طلبها:", en:"The following items are below the minimum stock, please reorder:"},
+    msg_title: {ar:"⚠️ تنبيه المخزون والصلاحية", en:"⚠️ Stock and expiry alerts"},
+    msg_text: {ar:"راجع الأصناف التالية واتخذ الإجراء المناسب:", en:"Review these items and take appropriate action:"},
+    alert_low_heading: {ar:"مخزون منخفض", en:"Low stock"},
+    alert_expiring_heading: {ar:"تنتهي خلال 3 أشهر", en:"Expiring within 3 months"},
+    alert_expired_heading: {ar:"منتهية الصلاحية", en:"Expired"},
+    alert_days_left: {ar:"يوم متبقٍ", en:"days left"},
+    alert_summary: {ar:"مخزون منخفض: {low} · تنتهي قريباً: {soon} · منتهية: {expired}", en:"Low stock: {low} · Expiring soon: {soon} · Expired: {expired}"},
     msg_ok: {ar:"فهمت", en:"Got it"},
     msg_qty: {ar:"عبوة", en:"packs"},
     item_unit: {ar:"صنف", en:"item(s)"},
@@ -49,7 +57,7 @@
     rc_cashier: {ar:"البائع", en:"Cashier"},
     rc_payment: {ar:"الدفع", en:"Payment"},
     rc_cash: {ar:"كاش", en:"Cash"},
-    rc_card: {ar:"شبكة", en:"Card"},
+    rc_card: {ar:"تحويل", en:"Transfer"},
     rc_item: {ar:"الصنف", en:"Item"},
     rc_qty: {ar:"الكمية", en:"Qty"},
     rc_price: {ar:"السعر", en:"Price"},
@@ -59,7 +67,7 @@
     rc_total: {ar:"الإجمالي", en:"Total"},
     rc_received: {ar:"المستلم", en:"Received"},
     rc_change: {ar:"الباقي", en:"Change"},
-    rc_ref: {ar:"مرجع الشبكة", en:"Card ref"},
+    rc_ref: {ar:"مرجع التحويل", en:"Transfer reference"},
     rc_thanks: {ar:"شكراً لزيارتكم · نسأل الله الشفاء للجميع", en:"Thank you for your visit · Get well soon"},
     rc_copy: {ar:"نسخة العميل", en:"Customer copy"},
     total_label: {ar:"الإجمالي", en:"Total"},
@@ -73,6 +81,10 @@
     barcode_label: {ar:"الباركود", en:"Barcode"},
     barcode_ph: {ar:"امسح الباركود هنا…", en:"Scan barcode here…"},
     scan_btn: {ar:"إضافة للفاتورة", en:"Add to invoice"},
+    manual_sale_title: {ar:"إدخال أصناف يدوياً", en:"Manual item entry"},
+    drug_search_placeholder: {ar:"اكتب اسم الدواء لعرض الأدوية المحفوظة…", en:"Type a drug name to see saved items…"},
+    no_drug_matches: {ar:"لا توجد أدوية مطابقة بالكمية المتوفرة", en:"No matching drugs in stock"},
+    manual_sale_hint: {ar:"أدخل الاسم والسعر والكمية، ثم اختر طريقة الدفع واضغط حفظ ودفع وطباعة.", en:"Enter the name, price and quantity, choose a payment method, then save, pay and print."},
     camera_btn: {ar:"📷 مسح بالكاميرا", en:"📷 Camera scan"},
     decode_title: {ar:"ترجمة الباركود", en:"Barcode decoding"},
     cart_title: {ar:"🧾 الفاتورة الحالية", en:"🧾 Current invoice"},
@@ -84,11 +96,11 @@
     remove: {ar:"حذف", en:"Remove"},
     pay_title: {ar:"💰 طريقة الدفع", en:"💰 Payment method"},
     pay_hint: {ar:"اختر زراً واحداً من الزرين الجاهزين (بدون قوائم منسدلة).", en:"Pick one of the two ready buttons (no dropdowns)."},
-    pay_cash: {ar:"💵 كاش", en:"💵 Cash"}, pay_card: {ar:"💳 شبكة", en:"💳 Card"},
+    pay_cash: {ar:"💵 كاش", en:"💵 Cash"}, pay_card: {ar:"💳 تحويل", en:"💳 Transfer"},
     received_label: {ar:"المبلغ المستلم", en:"Amount received"},
     change_label: {ar:"الباقي", en:"Change"},
     card_ref_label: {ar:"رقم المرجع / آخر 4 أرقام (اختياري)", en:"Reference / last 4 digits (optional)"},
-    pay_btn: {ar:"✅ دفع وطباعة", en:"✅ Pay & print"},
+    pay_btn: {ar:"دفع", en:"Pay"},
     clear_btn: {ar:"فاتورة جديدة", en:"New invoice"},
     reprint_btn: {ar:"🖨️ إعادة طباعة آخر فاتورة", en:"🖨️ Reprint last invoice"},
     not_found: {ar:"❌ الباركود غير مسجّل في المخزون — أضفه من صفحة المخزون أولاً", en:"❌ Barcode not in inventory — add it from the Inventory page"},
@@ -96,9 +108,9 @@
     override: {ar:"تعديل يدوي", en:"Manual override"},
     /* ---------- صفحة المخزون ---------- */
     inv_title: {ar:"📦 المخزون والمشتريات", en:"📦 Inventory & Purchases"},
-    inv_sub: {ar:"إدخال الأدوية المشتراة بالباركود، تعديل المخزون، منح الصلاحيات وإعدادات النظام — التعديل للمدير فقط.", en:"Register purchased drugs, adjust stock, grant permissions and configure — editing is admin-only."},
+    inv_sub: {ar:"يمكن لجميع المستخدمين إدخال دواء أو زيادة كميته، وتعديل بيانات الأصناف للمدير فقط.", en:"All users can add drugs or increase quantities; only the admin can edit item details."},
     entry_title: {ar:"➕ إدخال عملية شراء / دواء جديد", en:"➕ New purchase / drug"},
-    entry_hint: {ar:"امسح الباركود ← تُرجمته تظهر أدناه ← اكتب اسم الدواء وسعر الشراء وسعر البيع والكمية.", en:"Scan → decoded info appears below → enter name, cost, sell price and quantity."},
+    entry_hint: {ar:"امسح الباركود أو اكتب رقمه يدوياً. إذا تعذر، اترك خانة الباركود فارغة وأدخل بيانات الدواء؛ سيُنشأ له رقم داخلي.", en:"Scan or type the barcode. If unavailable, leave it blank and enter the drug details; an internal code will be generated."},
     inv_barcode_label: {ar:"باركود الدواء", en:"Drug barcode"},
     inv_barcode_ph: {ar:"امسح الباركود هنا…", en:"Scan barcode here…"},
     decode_btn: {ar:"ترجمة الباركود", en:"Decode barcode"},
@@ -175,7 +187,11 @@
         return {"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[c];
       });
     },
-    money: function (v) { return (Number(v) || 0).toFixed(2); },
+    money: function (v) {
+      var n = Number(v);
+      if (!isFinite(n)) n = 0;
+      return new Intl.NumberFormat("en-US", {minimumFractionDigits:2, maximumFractionDigits:2}).format(n);
+    },
     has: function (p) {
       if (!this.user) return false;
       if (this.user.role === "admin") return true;
@@ -287,12 +303,14 @@
 
   function loginHTML() {
     return '<div class="login-card">' +
-      '<div class="login-logo" id="loginLogo" data-i18n="login_title">صيدلية بدوي</div>' +
+      '<div class="login-logo" id="loginLogo" data-i18n="login_title">صيدلية الشيخ برير الشيخ الصديق</div>' +
       '<div class="login-sub" data-i18n="login_sub">سجّل الدخول للمتابعة</div>' +
       '<div class="login-field"><label data-i18n="login_user">اسم المستخدم</label>' +
         '<input id="loginUser" autocomplete="username" data-i18n-ph="ph_user"></div>' +
       '<div class="login-field"><label data-i18n="login_pass">كلمة المرور</label>' +
-        '<input id="loginPass" type="password" autocomplete="current-password" data-i18n-ph="ph_pass"></div>' +
+        '<div class="login-pass-wrap"><input id="loginPass" type="password" autocomplete="current-password" data-i18n-ph="ph_pass">' +
+        '<button class="show-pass-btn" id="showPassBtn" type="button" data-i18n="show_password">إظهار</button></div></div>' +
+      '<label class="remember-row"><input id="rememberMe" type="checkbox"> <span data-i18n="remember_me">تذكرني</span></label>' +
       '<button class="login-btn" id="loginBtn" data-i18n="login_btn">دخول</button>' +
       '<div class="login-error" id="loginErr"></div></div>';
   }
@@ -327,14 +345,22 @@
 
   /* ---------------- صندوق رسائل المخزون (لكل المستخدمين) ---------------- */
   PH.showMsgBox = function (force) {
-    var items = PH.alerts || [];
-    if (!items.length && !force) return;
-    document.getElementById("msgList").innerHTML = items.length
-      ? items.map(function (d) {
-          return '<div class="msg-item"><span>' + PH.esc(d.name) + ' <span class="mono">' + PH.esc(d.barcode) + '</span></span>' +
-                 '<b>' + PH.esc(d.qty) + ' ' + PH.t("msg_qty") + '</b></div>';
-        }).join("")
-      : '<div class="empty-msg">—</div>';
+    var items = PH.alerts || [], expiring = PH.expiring || [], expired = PH.expired || [];
+    if (!items.length && !expiring.length && !expired.length && !force) return;
+    var groups = [];
+    function addGroup(title, list, detail) {
+      if (!list.length) return;
+      groups.push('<div class="msg-section-title">' + PH.t(title) + '</div>' + list.map(function (d) {
+        return '<div class="msg-item"><span>' + PH.esc(d.name) + ' <span class="mono">' + PH.esc(d.barcode) + '</span></span>' +
+               '<b>' + detail(d) + '</b></div>';
+      }).join(""));
+    }
+    addGroup("alert_expired_heading", expired, function (d) { return PH.esc(d.expiry); });
+    addGroup("alert_expiring_heading", expiring, function (d) {
+      return PH.esc(d.days_left) + " " + PH.t("alert_days_left") + " · " + PH.esc(d.expiry);
+    });
+    addGroup("alert_low_heading", items, function (d) { return PH.esc(d.qty) + " " + PH.t("msg_qty"); });
+    document.getElementById("msgList").innerHTML = groups.join("") || '<div class="empty-msg">—</div>';
     document.getElementById("msgText").textContent = PH.t("msg_text");
     document.getElementById("msgOverlay").classList.add("show");
   };
@@ -344,17 +370,22 @@
     try {
       var r = await PH.api("/api/alerts", {silent401:true});
       PH.alerts = r.alerts || [];
+      PH.expiring = r.expiring || [];
+      PH.expired = r.expired || [];
       PH.threshold = r.threshold || 15;
       var banner = document.getElementById("alertBanner");
       var txt = document.getElementById("alertText");
-      if (PH.alerts.length) {
-        txt.textContent = PH.t("alert_prefix") + " " + PH.threshold + " " + PH.t("alert_suffix") +
-                          " — " + PH.alerts.length + " " + PH.t("item_unit");
+      var alertCount = PH.alerts.length + PH.expiring.length + PH.expired.length;
+      if (alertCount) {
+        txt.textContent = PH.t("alert_summary").replace("{low}", PH.alerts.length)
+          .replace("{soon}", PH.expiring.length).replace("{expired}", PH.expired.length);
         banner.classList.add("show");
       } else {
         banner.classList.remove("show");
       }
-      var sig = PH.alerts.map(function (d) { return d.barcode + ":" + d.qty; }).sort().join("|");
+      var sig = [PH.alerts.map(function (d) { return "low:" + d.barcode + ":" + d.qty; }),
+        PH.expiring.map(function (d) { return "soon:" + d.barcode + ":" + d.expiry; }),
+        PH.expired.map(function (d) { return "expired:" + d.barcode + ":" + d.expiry; })].flat().sort().join("|");
       var seen = sessionStorage.getItem("ph_alert_sig") || "";
       if (sig && sig !== seen) {
         sessionStorage.setItem("ph_alert_sig", sig);
@@ -380,7 +411,7 @@
 
   PH.printReceipt = function (sale, cfg, auto) {
     cfg = cfg || PH.config || {};
-    var cur = PH.esc(cfg.currency || "ر.س");
+    var cur = PH.esc(cfg.currency || "جنيه سوداني");
     var rows = (sale.items || []).map(function (i) {
       return '<tr><td>' + PH.esc(i.name) + '<br><span style="font-size:9px">' + PH.esc(i.barcode) + '</span></td>' +
         '<td>' + PH.esc(i.qty) + '</td><td>' + PH.money(i.price) + '</td>' +
@@ -491,7 +522,26 @@
     if (modals) modals.innerHTML = modalsHTML();
     applyPrefs();
 
+    var savedLogin = localStorage.getItem("ph_remember_user");
+    if (savedLogin) {
+      document.getElementById("loginUser").value = savedLogin;
+      document.getElementById("rememberMe").checked = true;
+    }
+
     document.getElementById("loginBtn").addEventListener("click", doLogin);
+    document.getElementById("showPassBtn").addEventListener("click", function () {
+      var field = document.getElementById("loginPass");
+      var shown = field.type === "password";
+      field.type = shown ? "text" : "password";
+      this.textContent = PH.t(shown ? "hide_password" : "show_password");
+    });
+    document.getElementById("rememberMe").addEventListener("change", function () {
+      if (!this.checked) localStorage.removeItem("ph_remember_user");
+      else localStorage.setItem("ph_remember_user", document.getElementById("loginUser").value.trim());
+    });
+    document.getElementById("loginUser").addEventListener("input", function () {
+      if (document.getElementById("rememberMe").checked) localStorage.setItem("ph_remember_user", this.value.trim());
+    });
     document.getElementById("loginPass").addEventListener("keydown", function (e) {
       if (e.key === "Enter") doLogin();
     });

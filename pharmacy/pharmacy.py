@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-صيدلية BADAWI — نظام البيع والشراء والمخزون   |   BADAWI PHARMACY
+صيدلية الشيخ برير الشيخ الصديق — نظام البيع والشراء والمخزون
 ثلاث صفحات منفصلة، واجهة بنفس شكل نظام المستشفى، بيانات مشفّرة ومحمية من العبث.
 
 Pages :  /            -> نقطة البيع (الصيدلية)
@@ -11,11 +11,10 @@ Run   :  python "pharmacy.py"                 -> http://127.0.0.1:17761
          python "pharmacy.py" --port 18000
          python "pharmacy.py" --no-browser
 
-Default login : badawi / Badawi@2026     (غيّرها من أول دخول)
-
 No external packages — Python standard library only, exactly like the hospital app.
 """
 import base64
+import calendar
 import hashlib
 import hmac
 import json
@@ -25,7 +24,7 @@ import secrets
 import sys
 import threading
 import webbrowser
-from datetime import datetime
+from datetime import datetime, date
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, unquote
 
@@ -47,10 +46,11 @@ def _setup_console():
 
 _setup_console()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+APP_DIR = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
 PROJECT_DIR = os.path.dirname(BASE_DIR)
-PAGES_DIR = os.path.join(BASE_DIR, "pages")
-ASSETS_DIR = os.path.join(BASE_DIR, "assets")
+PAGES_DIR = os.path.join(APP_DIR, "pages")
+ASSETS_DIR = os.path.join(APP_DIR, "assets")
 DATA_DIR = os.path.join(BASE_DIR, "data")
 BACKUP_DIR = os.path.join(DATA_DIR, "backups")
 STORE_FILE = os.path.join(DATA_DIR, "store.json")
@@ -208,9 +208,9 @@ def verify_audit(data):
 # ------------------------------------------------------------------
 
 DEFAULT_CONFIG = {
-    "pharmacy_name": "صيدلية بدوي",
+    "pharmacy_name": "صيدلية الشيخ برير الشيخ الصديق",
     "pharmacy_sub": "مستشفى الشيخ برير الشيخ الصديق",
-    "currency": "ر.س",
+    "currency": "جنيه سوداني",
     "vat_percent": 0.0,
     "low_stock": 15,
     "invoice_next": 1,
@@ -340,7 +340,7 @@ def ensure_admin():
     if os.path.exists(USERS_FILE):
         return
     save_users([{
-        "username": DEFAULT_ADMIN_USER, "name": "بدوي",
+        "username": DEFAULT_ADMIN_USER, "name": "مدير النظام",
         "password": hash_password(DEFAULT_ADMIN_PASS), "role": "admin",
         "perms": {p: True for p in PERMS}, "active": True, "created": now_str(),
     }])
@@ -619,7 +619,44 @@ class Handler(BaseHTTPRequestHandler):
             low = [{"barcode": d.get("barcode", ""), "name": d.get("name", ""),
                     "qty": int(num(d.get("qty"))), "expiry": d.get("expiry", "")}
                    for d in data["drugs"] if num(d.get("qty")) < limit]
-            self._ok(alerts=low, threshold=int(limit))
+            today = date.today()
+            month = today.month + 3
+            year = today.year + (month - 1) // 12
+            month = (month - 1) % 12 + 1
+            horizon = date(year, month, min(today.day, calendar.monthrange(year, month)[1]))
+            expiring, expired = [], []
+            for d in data["drugs"]:
+                try:
+                    expiry = date.fromisoformat(str(d.get("expiry", ""))[:10])
+                except ValueError:
+                    continue
+                item = {"barcode": d.get("barcode", ""), "name": d.get("name", ""),
+                        "expiry": expiry.isoformat(), "days_left": (expiry - today).days}
+                if today <= expiry <= horizon:
+                    expiring.append(item)
+                elif expiry < today:
+                    expired.append(item)
+            expiring.sort(key=lambda x: x["expiry"])
+            expired.sort(key=lambda x: x["expiry"], reverse=True)
+            self._ok(alerts=low, expiring=expiring, expired=expired, threshold=int(limit))
+            return
+
+        if path == "/api/drug-search":
+            if not self.guard("sell"):
+                return
+            query = str(q.get("q", [""])[0]).strip().casefold()
+            if not query:
+                self._ok(drugs=[])
+                return
+            with STORE_LOCK:
+                data = load_store()
+            matches = [d for d in data["drugs"]
+                       if query in str(d.get("name", "")).casefold() and num(d.get("qty")) > 0]
+            matches.sort(key=lambda d: (not str(d.get("name", "")).casefold().startswith(query),
+                                        str(d.get("name", "")).casefold()))
+            self._ok(drugs=[{"barcode": d.get("barcode", ""), "name": d.get("name", ""),
+                             "sell_price": money(num(d.get("sell_price"))), "qty": int(num(d.get("qty")))}
+                            for d in matches[:12]])
             return
 
         if path == "/api/lookup":
@@ -698,17 +735,19 @@ class Handler(BaseHTTPRequestHandler):
                 for s in data["sales"]:
                     for it in s.get("items", []):
                         w.writerow([s.get("invoice"), s.get("ts"), s.get("user"), it.get("barcode"),
-                                    it.get("name"), it.get("qty"), it.get("price"),
-                                    money(num(it.get("price")) * num(it.get("qty"))),
-                                    s.get("payment"), s.get("total")])
+                                    it.get("name"), it.get("qty"), "%.2f" % money(num(it.get("price"))),
+                                    "%.2f" % money(num(it.get("price")) * num(it.get("qty"))),
+                                    s.get("payment"), "%.2f" % money(num(s.get("total")))])
             elif kind == "purchases":
                 w.writerow(["ts", "user", "barcode", "name", "cost_price", "sell_price", "qty", "expiry", "supplier"])
                 for p in data["purchases"]:
-                    w.writerow([p.get(k, "") for k in ("ts", "user", "barcode", "name", "cost_price", "sell_price", "qty", "expiry", "supplier")])
+                    w.writerow([p.get(k, "") if k not in ("cost_price", "sell_price") else "%.2f" % money(num(p.get(k)))
+                                for k in ("ts", "user", "barcode", "name", "cost_price", "sell_price", "qty", "expiry", "supplier")])
             else:
                 w.writerow(["barcode", "name", "sell_price", "cost_price", "qty", "expiry", "supplier"])
                 for d in data["drugs"]:
-                    w.writerow([d.get(k, "") for k in ("barcode", "name", "sell_price", "cost_price", "qty", "expiry", "supplier")])
+                    w.writerow([d.get(k, "") if k not in ("sell_price", "cost_price") else "%.2f" % money(num(d.get(k)))
+                                for k in ("barcode", "name", "sell_price", "cost_price", "qty", "expiry", "supplier")])
             append_audit(data, self.current_user()["username"], "export", "تصدير CSV: " + kind)
             save_store(data)
             self._send(200, "\ufeff" + buf.getvalue(), "text/csv; charset=utf-8",
@@ -794,7 +833,7 @@ class Handler(BaseHTTPRequestHandler):
             items = body.get("items") or []
             payment = body.get("payment")
             if payment not in ("cash", "card"):
-                self._err("payment", "اختر طريقة الدفع: كاش أو شبكة", 400)
+                self._err("payment", "اختر طريقة الدفع: كاش أو تحويل", 400)
                 return
             if not items:
                 self._err("empty", "الفاتورة فارغة — امسح باركود أولاً", 400)
@@ -806,23 +845,29 @@ class Handler(BaseHTTPRequestHandler):
                 for it in items:
                     code = re.sub(r"\s+", "", str(it.get("barcode", "")))
                     d = find_drug(data, code)
-                    if not d:
+                    manual = bool(it.get("manual"))
+                    if not d and not manual:
                         self._err("unknown_drug", "باركود غير مسجّل في المخزون: " + code, 400)
                         return
                     qty = int(num(it.get("qty"), 0))
-                    price = money(num(it.get("price"), d.get("sell_price")))
+                    price = money(num(it.get("price"), d.get("sell_price") if d else 0))
                     if qty < 1 or price < 0:
-                        self._err("bad_line", "الكمية أو السعر غير صحيح (" + code + ")", 400)
+                        self._err("bad_line", "الكمية أو السعر غير صحيح (" + (code or str(it.get("name", ""))) + ")", 400)
                         return
-                    needed[code] = needed.get(code, 0) + qty
-                    override = (price != money(num(d.get("sell_price"))) or
-                                str(it.get("name", "")).strip() != str(d.get("name", "")).strip())
-                    clean.append({"barcode": code,
-                                  "name": str(it.get("name") or d.get("name") or "").strip(),
+                    if d:
+                        needed[code] = needed.get(code, 0) + qty
+                    item_name = str(it.get("name") or (d.get("name") if d else "") or "").strip()
+                    if not item_name:
+                        self._err("missing_name", "اسم الدواء مطلوب", 400)
+                        return
+                    override = (not d or price != money(num(d.get("sell_price"))) or
+                                item_name != str(d.get("name", "")).strip())
+                    clean.append({"barcode": code if d else "",
+                                  "name": item_name,
                                   "price": price, "qty": qty,
-                                  "cost_price": money(num(d.get("cost_price"))),
+                                  "cost_price": money(num(d.get("cost_price"))) if d else 0,
                                   "override": bool(override),
-                                  "original_price": money(num(d.get("sell_price")))})
+                                  "original_price": money(num(d.get("sell_price"))) if d else price})
                 for code, qty in needed.items():
                     d = find_drug(data, code)
                     if num(d.get("qty")) < qty:
@@ -844,22 +889,23 @@ class Handler(BaseHTTPRequestHandler):
                         "total": total, "payment": payment, "received": received,
                         "change": change, "card_ref": str(body.get("card_ref", "")).strip() if payment == "card" else ""}
                 for i in clean:
-                    d = find_drug(data, i["barcode"])
-                    d["qty"] = int(num(d.get("qty")) - i["qty"])
-                    d["updated"] = now_str()
+                    if i["barcode"]:
+                        d = find_drug(data, i["barcode"])
+                        d["qty"] = int(num(d.get("qty")) - i["qty"])
+                        d["updated"] = now_str()
                 data["sales"].append(sale)
-                overrides = [i["barcode"] for i in clean if i["override"]]
+                overrides = [i["barcode"] or ("يدوي:" + i["name"]) for i in clean if i["override"]]
                 append_audit(data, u["username"], "sale",
                              "%s | %s | %.2f%s" % (sale["invoice"],
-                             "كاش" if payment == "cash" else "شبكة", total,
+                             "كاش" if payment == "cash" else "تحويل", total,
                              " | تعديل يدوي: " + ",".join(overrides) if overrides else ""))
                 save_store(data)
             self._json({"status": "ok", "sale": sale, "config": dict(cfg)})
             return
 
-        # ---------- إدخال مشتريات / تعديل المخزون (مدير فقط) ----------
+        # ---------- إدخال أدوية وزيادة المخزون (لكل مستخدم مسجل) ----------
         if path == "/api/purchase":
-            u = self.guard("purchase")
+            u = self.guard()
             if not u:
                 return
             code = re.sub(r"\s+", "", str(body.get("barcode", "")))
@@ -867,8 +913,10 @@ class Handler(BaseHTTPRequestHandler):
             qty = int(num(body.get("qty"), 0))
             cost = money(num(body.get("cost_price"), 0))
             sell = money(num(body.get("sell_price"), 0))
-            if not code or not name:
-                self._err("missing", "الباركود واسم الدواء مطلوبان", 400)
+            if not code:
+                code = "MANUAL-" + secrets.token_hex(4).upper()
+            if not name:
+                self._err("missing", "اسم الدواء مطلوب", 400)
                 return
             if qty < 1 or sell < 0 or cost < 0:
                 self._err("bad_values", "الكمية والأسعار يجب أن تكون أرقاماً صحيحة", 400)
@@ -884,14 +932,10 @@ class Handler(BaseHTTPRequestHandler):
                          "created": now_str(), "updated": now_str()}
                     data["drugs"].append(d)
                 else:
-                    d["name"] = name
-                    d["cost_price"] = cost
-                    d["sell_price"] = sell
-                    if body.get("expiry"):
-                        d["expiry"] = str(body.get("expiry")).strip()
-                    if body.get("supplier"):
-                        d["supplier"] = str(body.get("supplier")).strip()
-                    d["updated"] = now_str()
+                    # Existing drug details are immutable through this route; this only adds quantity.
+                    name = d.get("name", name)
+                    cost = money(num(d.get("cost_price")))
+                    sell = money(num(d.get("sell_price")))
                 d["qty"] = int(num(d.get("qty")) + qty)
                 pur = {"id": "P%s%d" % (datetime.now().strftime("%Y%m%d%H%M%S"), len(data["purchases"]) + 1),
                        "ts": now_str(), "user": u["username"], "barcode": code, "name": name,
@@ -1112,9 +1156,8 @@ def main():
     url = "http://127.0.0.1:%d/" % port
     server = QuietServer(("127.0.0.1", port), Handler)
     print("=" * 60)
-    print("  BADAWI PHARMACY — صيدلية بدوي")
+    print("  صيدلية الشيخ برير الشيخ الصديق")
     print("  " + url)
-    print("  الدخول: %s / %s" % (DEFAULT_ADMIN_USER, DEFAULT_ADMIN_PASS))
     print("  البيانات مشفّرة في: " + DATA_DIR)
     print("=" * 60)
     if not opts["no_browser"]:

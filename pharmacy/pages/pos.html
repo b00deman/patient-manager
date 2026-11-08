@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>صيدلية بدوي — نقطة البيع</title>
+<title>صيدلية الشيخ برير الشيخ الصديق — نقطة البيع</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lalezar&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,14 +21,15 @@ try{var _p=JSON.parse(localStorage.getItem('ph_prefs')||'{}');
 <div id="phModals"></div>
 
 <div id="pageView" class="container" hidden>
-  <header>
-    <h1 data-i18n="pos_title">قسم الصيدلية — نقطة البيع</h1>
-    <p data-i18n="pos_sub">امسح باركود الدواء فيظهر الاسم والسعر فوراً. كل الحقول قابلة للتعديل يدوياً قبل الدفع.</p>
-  </header>
-
   <!-- 1) الباركود -->
   <section class="card">
-    <h2 data-i18n="scan_title">🔎 مسح الباركود</h2>
+    <div class="sale-topline">
+      <h2 data-i18n="scan_title">🔎 مسح الباركود</h2>
+      <div class="total-box total-compact">
+        <span class="lbl" data-i18n="total_label">الإجمالي</span>
+        <span class="val"><span id="totalVal">0.00</span> <span id="curLbl">جنيه سوداني</span></span>
+      </div>
+    </div>
     <p class="hint" data-i18n="scan_hint">الماسح يكتب الرقم كأنه لوحة مفاتيح ويضغط Enter تلقائياً — أبقِ المؤشر في هذا الحقل.</p>
     <div class="form-group" style="margin-bottom:12px">
       <label data-i18n="barcode_label">الباركود</label>
@@ -39,15 +40,46 @@ try{var _p=JSON.parse(localStorage.getItem('ph_prefs')||'{}');
       <button class="btn btn-primary" id="addBtn" data-i18n="scan_btn">إضافة للفاتورة</button>
       <button class="btn btn-secondary" id="cameraBtn" data-i18n="camera_btn">📷 مسح بالكاميرا</button>
     </div>
+    <div class="manual-sale-box">
+      <div class="section-title" data-i18n="manual_sale_title">إدخال أصناف يدوياً</div>
+      <p class="hint" data-i18n="manual_sale_hint">أدخل الاسم والسعر والكمية، ثم اختر طريقة الدفع واضغط حفظ ودفع وطباعة.</p>
+      <div class="form-grid three manual-sale-fields">
+        <div class="form-group autocomplete-wrap"><label data-i18n="drug_name">اسم الدواء</label><input id="manualName" autocomplete="off" data-i18n-ph="drug_search_placeholder">
+          <div class="autocomplete-list" id="drugSuggestions" hidden></div>
+        </div>
+        <div class="form-group"><label data-i18n="sell_price">سعر البيع</label><input id="manualPrice" type="number" min="0" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label data-i18n="qty_bought">الكمية</label><input id="manualQty" type="number" min="1" step="1"></div>
+      </div>
+      <div class="checkout-inline">
+        <div class="pay-grid pay-grid-compact">
+          <button type="button" class="pay-btn" id="payCash" data-pay="cash">
+            <span class="pay-ico">💵</span><span data-i18n="pay_cash">كاش</span></button>
+          <button type="button" class="pay-btn" id="payCard" data-pay="card">
+            <span class="pay-ico">↗️</span><span data-i18n="pay_card">تحويل</span></button>
+        </div>
+        <button class="btn btn-ok" id="payBtn" disabled data-i18n="pay_btn">دفع</button>
+      </div>
+      <div class="form-grid three" id="cashFields" hidden>
+        <div class="form-group">
+          <label data-i18n="received_label">المبلغ المستلم</label>
+          <input type="number" id="receivedInput" min="0" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label data-i18n="change_label">الباقي</label>
+          <input type="text" id="changeInput" readonly value="0.00" style="font-weight:800">
+        </div>
+      </div>
+      <div class="form-grid three" id="cardFields" hidden>
+        <div class="form-group">
+          <label data-i18n="card_ref_label">رقم المرجع / آخر 4 أرقام (اختياري)</label>
+          <input type="text" id="cardRef" autocomplete="off">
+        </div>
+      </div>
+    </div>
     <div class="decode-box" id="decodeBox" hidden></div>
-  </section>
-
-  <!-- 2) الفاتورة -->
-  <section class="card">
-    <h2 data-i18n="cart_title">🧾 الفاتورة الحالية</h2>
-    <p class="hint" data-i18n="cart_hint">عدّل الاسم أو السعر أو الكمية يدوياً من الجدول — أي تعديل يُسجّل في سجل التدقيق.</p>
+    <div class="cart-inline">
     <div class="empty-msg" id="cartEmpty" data-i18n="cart_empty">الفاتورة فارغة — امسح أول باركود للبدء</div>
-    <table id="cartTable" hidden>
+    <div class="table-wrap"><table id="cartTable" hidden>
       <thead><tr>
         <th data-i18n="th_barcode">الباركود</th>
         <th data-i18n="th_drug">الدواء</th>
@@ -57,41 +89,13 @@ try{var _p=JSON.parse(localStorage.getItem('ph_prefs')||'{}');
         <th data-i18n="th_act"></th>
       </tr></thead>
       <tbody id="cartBody"></tbody>
-    </table>
+    </table></div>
+    </div>
   </section>
 
-  <!-- 3) الدفع -->
+  <!-- إتمام البيع -->
   <section class="card">
-    <h2 data-i18n="pay_title">💰 طريقة الدفع</h2>
-    <p class="hint" data-i18n="pay_hint">اختر زراً واحداً من الزرين الجاهزين (بدون قوائم منسدلة).</p>
-    <div class="pay-grid">
-      <button type="button" class="pay-btn" id="payCash" data-pay="cash">
-        <span class="pay-ico">💵</span><span data-i18n="pay_cash">كاش</span></button>
-      <button type="button" class="pay-btn" id="payCard" data-pay="card">
-        <span class="pay-ico">💳</span><span data-i18n="pay_card">شبكة</span></button>
-    </div>
-    <div class="form-grid three" id="cashFields" hidden>
-      <div class="form-group">
-        <label data-i18n="received_label">المبلغ المستلم</label>
-        <input type="number" id="receivedInput" min="0" step="0.01" placeholder="0.00">
-      </div>
-      <div class="form-group">
-        <label data-i18n="change_label">الباقي</label>
-        <input type="text" id="changeInput" readonly value="0.00" style="font-weight:800">
-      </div>
-    </div>
-    <div class="form-grid three" id="cardFields" hidden>
-      <div class="form-group">
-        <label data-i18n="card_ref_label">رقم المرجع / آخر 4 أرقام (اختياري)</label>
-        <input type="text" id="cardRef" autocomplete="off">
-      </div>
-    </div>
-    <div class="total-box">
-      <span class="lbl" data-i18n="total_label">الإجمالي</span>
-      <span class="val"><span id="totalVal">0.00</span> <span id="curLbl">ر.س</span></span>
-    </div>
     <div class="btn-row">
-      <button class="btn btn-ok" id="payBtn" disabled data-i18n="pay_btn">✅ دفع وطباعة</button>
       <button class="btn btn-secondary" id="clearBtn" data-i18n="clear_btn">فاتورة جديدة</button>
       <button class="btn btn-secondary" id="reprintBtn" data-i18n="reprint_btn">🖨️ إعادة طباعة آخر فاتورة</button>
     </div>

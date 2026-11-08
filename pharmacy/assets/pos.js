@@ -3,7 +3,7 @@
    ============================================================ */
 (function () {
   "use strict";
-  var cart = [], payment = null;
+  var cart = [], payment = null, suggestionTimer = null, suggestions = [], selectedDrug = null, searchSeq = 0;
 
   function el(id) { return document.getElementById(id); }
   function cfg() { return PH.config || {}; }
@@ -20,7 +20,7 @@
     body.innerHTML = cart.map(function (i, idx) {
       var changed = (i.name !== i.original_name || Number(i.price) !== Number(i.original_price));
       return '<tr>' +
-        '<td class="mono cell-num">' + PH.esc(i.barcode) + '</td>' +
+        '<td class="mono cell-num">' + PH.esc(i.barcode || "—") + '</td>' +
         '<td><input class="cell" data-i="' + idx + '" data-f="name" value="' + PH.esc(i.name) + '">' +
           (changed ? '<span class="badge badge-warn" style="margin-top:4px">' + PH.t("override") + '</span>' : '') +
         '</td>' +
@@ -32,7 +32,7 @@
     }).join("");
     var t = total();
     el("totalVal").textContent = PH.money(t.total);
-    el("curLbl").textContent = PH.esc(cfg().currency || "ر.س");
+    el("curLbl").textContent = PH.esc(cfg().currency || "جنيه سوداني");
     updateChange();
     updatePayButton();
   }
@@ -45,7 +45,11 @@
   }
 
   function updatePayButton() {
-    el("payBtn").disabled = !(cart.length > 0 && payment && PH.has("sell"));
+    var pending = [el("manualName").value, el("manualPrice").value, el("manualQty").value].some(function (v) { return String(v).trim() !== ""; });
+    var qty = Number(el("manualQty").value), price = Number(el("manualPrice").value);
+    var validManual = !!el("manualName").value.trim() && el("manualPrice").value !== "" &&
+      isFinite(price) && price >= 0 && Number.isInteger(qty) && qty >= 1;
+    el("payBtn").disabled = !((cart.length > 0 || validManual) && !(pending && !validManual) && payment && PH.has("sell"));
   }
 
   function showDecode(dec, drug) {
@@ -55,7 +59,7 @@
       '<span class="kv">✓ <b>' + (dec.valid ? "رقم التحقق صحيح" : "رقم التحقق غير صحيح ✗") + '</b></span>';
     var found = drug
       ? '<br><span class="kv">💊 <b>' + PH.esc(drug.name) + '</b></span>' +
-        '<span class="kv">💰 <b>' + PH.money(drug.sell_price) + ' ' + PH.esc(cfg().currency || "ر.س") + '</b></span>' +
+        '<span class="kv">💰 <b>' + PH.money(drug.sell_price) + ' ' + PH.esc(cfg().currency || "جنيه سوداني") + '</b></span>' +
         '<span class="kv">📦 <b>' + PH.esc(drug.qty) + '</b> عبوة</span>'
       : '<br><span class="badge badge-bad">' + PH.t("not_found") + '</span>';
     box.innerHTML = '<div style="font-weight:800;margin-bottom:4px">' + PH.t("decode_title") + '</div>' +
@@ -87,6 +91,59 @@
     }
   }
 
+  function addManualLine() {
+    var name = el("manualName").value.trim();
+    var rawPrice = el("manualPrice").value;
+    var price = Number(el("manualPrice").value);
+    var qty = Number(el("manualQty").value);
+    var pending = [name, rawPrice, el("manualQty").value].some(function (v) { return String(v).trim() !== ""; });
+    if (!pending) return true;
+    if (!name || el("manualPrice").value === "" || !isFinite(price) || price < 0 || !Number.isInteger(qty) || qty < 1) {
+      PH.toast("أدخل اسم الدواء والسعر والكمية بشكل صحيح", true);
+      return false;
+    }
+    var matched = selectedDrug && selectedDrug.name === name ? selectedDrug : null;
+    cart.push({barcode:matched ? matched.barcode : "", manual:!matched, name:name, price:price, qty:qty,
+      original_price:price, original_name:name});
+    ["manualName", "manualPrice", "manualQty"].forEach(function (id) { el(id).value = ""; });
+    selectedDrug = null;
+    el("drugSuggestions").hidden = true;
+    render();
+    return true;
+  }
+
+  function searchDrugs(query) {
+    clearTimeout(suggestionTimer);
+    query = query.trim();
+    var box = el("drugSuggestions");
+    if (!query) { suggestions = []; box.hidden = true; return; }
+    suggestionTimer = setTimeout(async function () {
+      var seq = ++searchSeq;
+      try {
+        var r = await PH.api("/api/drug-search?q=" + encodeURIComponent(query));
+        if (seq !== searchSeq || el("manualName").value.trim() !== query) return;
+        suggestions = r.drugs || [];
+        box.innerHTML = suggestions.length ? suggestions.map(function (d, i) {
+          return '<button type="button" class="autocomplete-item" data-suggestion="' + i + '"><span>' +
+            PH.esc(d.name) + '</span><small>' + PH.money(d.sell_price) + ' ' + PH.esc(cfg().currency || "جنيه سوداني") +
+            ' · ' + PH.esc(d.qty) + ' متوفر</small></button>';
+        }).join("") : '<div class="empty-msg">' + PH.t("no_drug_matches") + '</div>';
+        box.hidden = false;
+      } catch (e) { box.hidden = true; }
+    }, 180);
+  }
+
+  function selectSuggestion(index) {
+    var drug = suggestions[index];
+    if (!drug) return;
+    selectedDrug = drug;
+    el("manualName").value = drug.name;
+    el("manualPrice").value = Number(drug.sell_price).toFixed(2);
+    el("drugSuggestions").hidden = true;
+    el("manualQty").focus();
+    updatePayButton();
+  }
+
   function selectPayment(p) {
     payment = p;
     el("payCash").classList.toggle("selected", p === "cash");
@@ -97,7 +154,9 @@
   }
 
   async function pay() {
+    if (!addManualLine()) return;
     if (!cart.length || !payment) return;
+    render();
     var btn = el("payBtn");
     btn.disabled = true;
     try {
@@ -105,7 +164,7 @@
         method: "POST",
         body: {
           items: cart.map(function (i) {
-            return {barcode: i.barcode, name: i.name, price: Number(i.price), qty: Number(i.qty)};
+            return {barcode: i.barcode, manual: !!i.manual, name: i.name, price: Number(i.price), qty: Number(i.qty)};
           }),
           payment: payment,
           received: payment === "cash" ? (el("receivedInput").value === "" ? null : Number(el("receivedInput").value)) : null,
@@ -134,11 +193,22 @@
       PH.toast(PH.t("nav_locked") + " (" + PH.t("perm_sell") + ")", true);
     }
     if (!PH.has("print")) el("reprintBtn").hidden = true;
-    el("curLbl").textContent = PH.esc(cfg().currency || "ر.س");
+    el("curLbl").textContent = PH.esc(cfg().currency || "جنيه سوداني");
     el("barcodeInput").addEventListener("keydown", function (e) {
       if (e.key === "Enter") { e.preventDefault(); scan(this.value); }
     });
     el("addBtn").addEventListener("click", function () { scan(el("barcodeInput").value); });
+    ["manualName", "manualPrice", "manualQty"].forEach(function (id) {
+      el(id).addEventListener("input", updatePayButton);
+    });
+    el("manualName").addEventListener("input", function () {
+      selectedDrug = null;
+      searchDrugs(this.value);
+    });
+    el("drugSuggestions").addEventListener("click", function (e) {
+      var item = e.target.closest ? e.target.closest("[data-suggestion]") : null;
+      if (item) selectSuggestion(Number(item.getAttribute("data-suggestion")));
+    });
     el("cameraBtn").addEventListener("click", function () {
       PH.openCamera(function (code) { el("barcodeInput").value = code; scan(code); });
     });
